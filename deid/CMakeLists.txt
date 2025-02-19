@@ -9,7 +9,7 @@ set(EXTENSION_CATEGORY "Utilities")
 set(EXTENSION_CONTRIBUTORS "Anh Tran (Sam Lab)")
 set(EXTENSION_DESCRIPTION "remove all identification")
 set(EXTENSION_ICONURL "https://github.com/payabvashlab/deid/blob/main/deid/Resources/Icons/deid.png")
-set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/deidentification/Screenshots/1.png")
+set(EXTENSION_SCREENSHOTURLS "https://github.com/payabvashlab/deid/blob/main/screenshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
