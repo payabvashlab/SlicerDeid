@@ -4,11 +4,11 @@ project(deidentification)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/deidentification")
-set(EXTENSION_CATEGORY "DEID")
+set(EXTENSION_HOMEPAGE "https://github.com/payabvashlab/deid")
+set(EXTENSION_CATEGORY "Utilities")
 set(EXTENSION_CONTRIBUTORS "Anh Tran (Sam Lab)")
 set(EXTENSION_DESCRIPTION "remove all identification")
-set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/deidentification.png")
+set(EXTENSION_ICONURL "https://github.com/payabvashlab/deid/blob/main/deid/Resources/Icons/deid.png")
 set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/deidentification/Screenshots/1.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
