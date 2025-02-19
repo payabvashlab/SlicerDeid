@@ -1,0 +1,30 @@
+# Name of the extension
+module_name = MyExtension
+
+# Description
+description = This is an example Slicer extension.
+
+# Homepage
+homepage = https://example.com/MyExtension
+
+# Categories
+category = DEID
+
+# Contributors
+contributors = Anh Tran (Sam Lab)
+
+# Dependencies
+dependencies =
+
+# Status
+status = Alpha
+
+# Icon URL
+iconurl = https://www.example.com/Slicer/Extensions/deidentification.png
+
+# Screenshot URLs
+screenshoturls = https://www.example.com/Slicer/Extensions/deidentification/Screenshots/1.png
+
+# Development repository
+repository_type = git
+repository_url = https://github.com/YourUsername/MyExtension.git
