@@ -1,7 +1,7 @@
 # De-identification
 This project is under development
 
-This is a Slicer extension to anonymize a 'batch' of DICOM CT images.
+This is a Slicer extension to anonymize a 'batch' of head DICOM CT images.
 Install as Slicer extension
 Run:
 1.	Select Dicom Folder
@@ -13,4 +13,4 @@ The Excel file has two columns: Accession_number, De-identification_ID
 - Can be set up as a standalone application
 
 ## License
-Please contact us
+This software is licensed under the terms of the Apache Licence Version 2.0
