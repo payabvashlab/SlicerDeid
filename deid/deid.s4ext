@@ -1,30 +1,44 @@
-# Name of the extension
-module_name = MyExtension
+#
+# First token of each non-comment line is the keyword and the rest of the line
+# (including spaces) is the value.
+# - the value can be blank
+#
 
-# Description
-description = This is an example Slicer extension.
+# This is source code manager
+scm local
+scmurl https://github.com/payabvashlab/SlicerDeid
+scmrevision NA
 
-# Homepage
-homepage = https://example.com/MyExtension
+# list dependencies
+# - These should be names of other modules that have .s4ext files
+# - The dependencies will be built first
+depends pandas PyTorch opencv-python openpyxl
 
-# Categories
-category = DEID
+# Inner build directory (default is ".")
+build_subdirectory .
 
-# Contributors
-contributors = Anh Tran (Sam Lab)
+# homepage
+homepage https://github.com/payabvashlab/SlicerDeid
 
-# Dependencies
-dependencies =
+# Firstname1 Lastname1 ([SubOrg1, ]Org1), Firstname2 Lastname2 ([SubOrg2, ]Org2)
+# For example: Jane Roe (Superware), John Doe (Lab1, Nowhere), Joe Bloggs (Noware)
+contributors Anh Tran (Sam Lab)
 
-# Status
-status = Alpha
+# Match category in the xml description of the module (where it shows up in Modules menu)
+category Utilities
 
-# Icon URL
-iconurl = https://www.example.com/Slicer/Extensions/deidentification.png
+# url to icon (png, size 128x128 pixels)
+iconurl https://github.com/payabvashlab/SlicerDeid/blob/main/deid/Resources/Icons/deid.png
 
-# Screenshot URLs
-screenshoturls = https://www.example.com/Slicer/Extensions/deidentification/Screenshots/1.png
+# Give people an idea what to expect from this code
+#  - Is it just a test or something you stand behind?
+status 
 
-# Development repository
-repository_type = git
-repository_url = https://github.com/YourUsername/MyExtension.git
+# One line stating what the module does
+description remove all identification fro dicom
+
+# Space separated list of urls
+screenshoturls https://github.com/payabvashlab/SlicerDeid/blob/main/screenshot.png
+
+# 0 or 1: Define if the extension should be enabled after its installation.
+enabled 1
