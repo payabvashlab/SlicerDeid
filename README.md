@@ -7,7 +7,7 @@ Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging
 One of the contributions of our module is to remove PII from metadata, face [2], and de-text within images.
 
 List of all tags we check and remove:
- <img src="https://github.com/payabvashlab/SlicerDeid/images/metaTag.png" />
+ <img src="https://github.com/payabvashlab/SlicerDeid/blob/main/images/metaTag.png" />
 
 More information about DICOM Standards
 https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
