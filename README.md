@@ -13,6 +13,9 @@ The idea of de-face:
 - eroding the skin and subcutaneous fat of the head
 - replacing the air around the head with a customizable pixel value. 
 
+The idea of removing text within images:
+- Using morphology
+
 References:
 
 [1] David A Clunie 1, Adam Flanders 2, Adam Taylor 3, Brad Erickson 4, Brian Bialecki 5, David Brundage, et. al., (2023). Report of the Medical Image De-Identification (MIDI) Task Group - Best Practices and Recommendations, arXiv:2303.10473v2 
