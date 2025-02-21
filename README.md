@@ -4,7 +4,7 @@ This project is under development
 Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging and Com-munications in Medicine (DICOM) metadata as well as facial features, raising privacy concerns. This demonstrates the need for effective de-identification tools to protect patient privacy [1]. 
 =>This is a Slicer extension removing Personally Identifiable Information (PII) from head CT dicom
 
-One of the contributions of our module is to remove PII from metadata, face, and text within images.
+One of the contributions of our module is to remove PII from metadata, face [2], and text within images.
 
 List of all tags we check and remove:
  <img src="https://github.com/payabvashlab/SlicerDeid/blob/main/images/metaTag.png" />
@@ -20,7 +20,7 @@ References:
 
 Install as Slicer extension
 <br/>
-Run:
+# Run:
 1.	Select Dicom Folder
 The structure of a Dicom folder: The Dicom Folder must directly contain patient folders. Each patient folder may contain subdirectory. The application will process each patient file .dcm and the output has the same structure folder inside
 2.	Browse to Excel File
