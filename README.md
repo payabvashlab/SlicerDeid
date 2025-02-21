@@ -2,10 +2,12 @@
 This project is under development
 
 Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging and Com-munications in Medicine (DICOM) metadata as well as facial features, raising privacy concerns. This demonstrates the need for effective de-identification tools to protect patient privacy [1]. 
-=>This is a Slicer extension removing Personally Identifiable Information (PII) from both metadata and image content. The de-tagging procedure has been shown to be effective and accurate on multiple head CT datasets, whereas morphology-based or AI-based methods have effectively reduced the visibility of faces in images [2] without significantly affecting the diagnostic quality of the scans. 
+=>This is a Slicer extension removing Personally Identifiable Information (PII) from head CT dicom
 
-Our method:
-The de-identification process in this study consisted of three main steps: reading the DICOM file, re-de-identifying sensitive tags from the metadata, and removing facial features from the image. First, a DICOM reader accessed and loaded the CT data, and specific metadata tags containing identifiable information were removed. For image-based de-identification, a morphology-based and artificial intelligence-based method was applied to detect and blur facial structures, enhancing privacy while preserving relevant diagnostic information. 
+One of the contributions of our module is to remove PII from metadata, face [2], and de-text within images.
+
+List of all tags we check and remove:
+ <img src="https://github.com/payabvashlab/SlicerDeid/images/metaTag.png" />
 
 More information about DICOM Standards
 https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
