@@ -19,6 +19,7 @@ References:
 
 
 Install as Slicer extension
+
 Run:
 1.	Select Dicom Folder
 The structure of a Dicom folder: The Dicom Folder must directly contain patient folders. Each patient folder may contain subdirectory. The application will process each patient file .dcm and the output has the same structure folder inside
