@@ -8,7 +8,7 @@ Our method:
 The de-identification process in this study consisted of three main steps: reading the DICOM file, re-de-identifying sensitive tags from the metadata, and removing facial features from the image. First, a DICOM reader accessed and loaded the CT data, and specific metadata tags containing identifiable information were removed. For image-based de-identification, a morphology-based and artificial intelligence-based method was applied to detect and blur facial structures, enhancing privacy while preserving relevant diagnostic information. 
 
 More information about DICOM Standards
-https://dicom.nema.org/medical/dicom/current/output/html/part15.html
+https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
 
 References:
 [1] David A Clunie 1, Adam Flanders 2, Adam Taylor 3, Brad Erickson 4, Brian Bialecki 5, David Brundage, et. al., (2023). Report of the Medical Image De-Identification (MIDI) Task Group - Best Practices and Recommendations, arXiv:2303.10473v2 
