@@ -17,6 +17,9 @@ The idea of removing text within images:
 - Using morphology
 - Keep the largest object, remove small objects < threshold
 
+# Warning: 
+There is a risk of accidental exposure of patient information if de-identification is not performed correctly. Always double-check the output before sharing or using the data.
+
 References:
 
 [1] David A Clunie, Adam Flanders, Adam Taylor, Brad Erickson, Brian Bialecki, David Brundage, et. al., (2023). Report of the Medical Image De-Identification (MIDI) Task Group - Best Practices and Recommendations, arXiv:2303.10473v2 
