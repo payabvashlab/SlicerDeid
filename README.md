@@ -15,6 +15,7 @@ The idea of de-face:
 
 The idea of removing text within images:
 - Using morphology
+- Keep the largest object, remove small objects < threshold
 
 References:
 
