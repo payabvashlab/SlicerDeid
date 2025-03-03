@@ -18,7 +18,7 @@ The idea of removing text within images:
 - Keep the largest object, remove small objects < threshold
 
 # Warning: 
-There is a risk of accidental exposure of patient information if de-identification is not performed correctly. Always double-check the output before sharing or using the data.
+This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.
 
 References:
 

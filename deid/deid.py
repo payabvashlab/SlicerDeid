@@ -126,6 +126,7 @@ class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def onApplyButton(self):
         try:
+            slicer.util.infoDisplay("This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.", windowTitle="Warning")
             self.ui.progressBar.setValue(0) 
             self.logic.process(
                         self.ui.inputFolderButton.directory,
@@ -457,7 +458,7 @@ class DicomProcessor:
             dicom_files.sort(
                 key=lambda x: int(pydicom.dcmread(os.path.join(original_dir, x), force=True).InstanceNumber))
         except Exception as e:
-            print(e)
+            self.error = e
 
         for i, dicom_file in enumerate(dicom_files, start=1):
             try:
@@ -490,7 +491,7 @@ class DicomProcessor:
                 try:
                     ds.decompress()
                 except Exception as e:
-                    print(e)
+                    self.error = e
                 ds.remove_private_tags()
 
                 if "OtherPatientIDs" in ds:
@@ -500,7 +501,7 @@ class DicomProcessor:
                 ds.walk(self.person_names_callback)
                 ds.walk(self.curves_callback)
 
-                ANONYMOUS = "Processed GWTG"
+                ANONYMOUS = "De-identification"
                 today = time.strftime("%Y%m%d")
                 current_time = datetime.now().strftime("%H%M%S.%f")
 
