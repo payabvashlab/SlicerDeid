@@ -6,6 +6,7 @@ from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 import csv
 from deidLib.dependency_handler import NonSlicerPythonDependencies
+
 dependencies = NonSlicerPythonDependencies()
 dependencies.setupPythonRequirements(upgrade=True)
 import pandas as pd
@@ -22,7 +23,7 @@ import random
 from skimage.measure import label, regionprops
 from scipy.ndimage import binary_fill_holes
 from skimage.morphology import disk, binary_dilation
-        
+
 FACE_MAX_VALUE = 50
 FACE_MIN_VALUE = -125
 
@@ -51,6 +52,7 @@ This module de-identifies DICOM files by removing patient information based on a
 This file was developed by Sam, Columbia University.
 """
 
+
 class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def __init__(self, parent=None):
         ScriptedLoadableModuleWidget.__init__(self, parent)
@@ -71,11 +73,11 @@ class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.ui.inputFolderButton.connect('directoryChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.outputFolderButton.connect('directoryChanged(QString)', self.updateParameterNodeFromGUI)
-        
+
         self.ui.applyButton.connect('clicked()', self.onApplyButton)
         self.ui.excelFileButton.connect('clicked()', self.onBrowseExcelFile)
         self.ui.deidentifyCheckbox.connect('toggled(bool)', self.updateParameterNodeFromGUI)  # Handle checkbox state
-        
+
         self.initializeParameterNode()
 
     def initializeParameterNode(self):
@@ -90,7 +92,7 @@ class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self._parameterNode is not None:
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
         self.updateGUIFromParameterNode()
-    
+
     def updateGUIFromParameterNode(self, caller=None, event=None):
         if self._parameterNode is None or self._updatingGUIFromParameterNode:
             return
@@ -101,13 +103,15 @@ class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if excelFile:
             self.ui.excelFileButton.text = excelFile
         self.ui.outputFolderButton.directory = self._parameterNode.GetParameter("OutputFolder")
-        
+
         # Check if all required fields have values and enable the "Ally" button
-        if len(self._parameterNode.GetParameter("InputFolder"))>1  and len(self._parameterNode.GetParameter("ExcelFile"))>4 and len(self._parameterNode.GetParameter("OutputFolder"))>1 and self._parameterNode.GetParameter("ExcelFile")!="Browse":
+        if len(self._parameterNode.GetParameter("InputFolder")) > 1 and len(
+                self._parameterNode.GetParameter("ExcelFile")) > 4 and len(
+            self._parameterNode.GetParameter("OutputFolder")) > 1 and self._parameterNode.GetParameter(
+            "ExcelFile") != "Browse":
             self.ui.applyButton.setEnabled(True)
         else:
             self.ui.applyButton.setEnabled(False)
-
 
         self._updatingGUIFromParameterNode = False
 
@@ -120,20 +124,23 @@ class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetParameter("InputFolder", self.ui.inputFolderButton.directory)
         self._parameterNode.SetParameter("ExcelFile", self.ui.excelFileButton.text)
         self._parameterNode.SetParameter("OutputFolder", self.ui.outputFolderButton.directory)
-        self._parameterNode.SetParameter("Deidentify", str(self.ui.deidentifyCheckbox.isChecked()).lower())  # Set checkbox state
+        self._parameterNode.SetParameter("Deidentify",
+                                         str(self.ui.deidentifyCheckbox.isChecked()).lower())  # Set checkbox state
 
         self._parameterNode.EndModify(wasModified)
-        
+
     def onApplyButton(self):
         try:
-            slicer.util.infoDisplay("This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.", windowTitle="Warning")
-            self.ui.progressBar.setValue(0) 
+            slicer.util.infoDisplay(
+                "This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.",
+                windowTitle="Warning")
+            self.ui.progressBar.setValue(0)
             self.logic.process(
-                        self.ui.inputFolderButton.directory,
-                        self.ui.excelFileButton.text,
-                        self.ui.outputFolderButton.directory,
-                        self.ui.deidentifyCheckbox.isChecked(),
-                        self.ui.progressBar
+                self.ui.inputFolderButton.directory,
+                self.ui.excelFileButton.text,
+                self.ui.outputFolderButton.directory,
+                self.ui.deidentifyCheckbox.isChecked(),
+                self.ui.progressBar
             )
         except Exception as e:
             slicer.util.errorDisplay(f"Error: {str(e)}")
@@ -178,10 +185,11 @@ class deidLogic(ScriptedLoadableModuleLogic):
             raise ValueError(f"Excel file does not exist: {excelFile}")
         if not os.path.exists(outputFolder):
             os.makedirs(outputFolder)
-        columns_as_text = ['Accession_number', 'De-identification_ID'] 
+        columns_as_text = ['Accession_number', 'New_Scan_ID', 'Patient_ID', 'New_Patient_ID']
         df = pd.read_excel(excelFile, dtype={col: str for col in columns_as_text})
-        if ("Accession_number" not in df.columns) or ("De-identification_ID" not in df.columns):
-            raise ValueError("Excel file must contain a 'Accession_number' and 'GWTG_ID' column")
+        if ("Accession_number" not in df.columns) or ("New_Scan_ID" not in df.columns) or ("Patient_ID" not in df.columns) or ("New_Patient_ID" not in df.columns):
+            raise ValueError(
+                "Excel file must contain a 'Accession_number' and 'New_Scan_ID' and 'Patient_ID' and 'New_Patient_ID' column")
             return 0
         else:
             try:
@@ -195,22 +203,28 @@ class deidLogic(ScriptedLoadableModuleLogic):
             except Exception as e:
                 self.logger.info(e)
             df['Accession_number'] = df['Accession_number'].astype(str).str.strip()
-            df['De-identification_ID'] = df['De-identification_ID'].astype(str).str.strip()
-            id_mapping = dict(zip(df['Accession_number'], df['De-identification_ID']))
+            df['New_Scan_ID'] = df['New_Scan_ID'].astype(str).str.strip()
+            df['Patient_ID'] = df['Patient_ID'].astype(str).str.strip()
+            df['New_Patient_ID'] = df['New_Patient_ID'].astype(str).str.strip()
             dicom_folders = [d for d in os.listdir(inputFolder) if os.path.isdir(os.path.join(inputFolder, d))]
             total_rows = df.shape[0]
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             out_path = os.path.join(outputFolder, f'Processed for GWTG_{current_time}')
             os.makedirs(out_path, exist_ok=True)
-            for i, foldername in enumerate(dicom_folders):
-                if (foldername in id_mapping):
+            
+            for i in range(total_rows):
+                foldername = df['Accession_number'].tolist()[i]
+                New_Scan_ID = df['New_Scan_ID'].tolist()[i]
+                Patient_ID = df['Patient_ID'].tolist()[i]
+                New_Patient_ID = df['New_Patient_ID'].tolist()[i]
+                if (foldername in dicom_folders):
                     dst_folder = ""
                     try:
-                        dst_folder = os.path.join(out_path, id_mapping[foldername])
+                        dst_folder = os.path.join(out_path, New_Scan_ID)
                         processor = DicomProcessor()
                         src_folder = os.path.join(inputFolder, foldername)
-                        result = processor.drown_volume(src_folder, dst_folder, 'face', id_mapping[foldername], f"De-identification {id_mapping[foldername]}", remove_text)
-                        progressBar.setValue(int((i + 1)* 100/ total_rows)) 
+                        result = processor.drown_volume(src_folder, dst_folder, 'face', New_Scan_ID, New_Patient_ID, remove_text)
+                        progressBar.setValue(int((i + 1) * 100 / total_rows))
                         slicer.util.showStatusMessage(f"Finished processing foldername {foldername}")
                         self.logger.info(f"Finished processing folder: {foldername}")
                     except Exception as e:
@@ -221,12 +235,11 @@ class deidLogic(ScriptedLoadableModuleLogic):
                 folder_list_2 = df['Accession_number'].tolist()  # Convert to string (in case of numbers)
                 actual_folders = dicom_folders  # Get folder names in directory
                 missing_folders = [folder for folder in folder_list_2 if folder not in actual_folders]
-                if len(missing_folders)>0:
+                if len(missing_folders) > 0:
                     self.logger.error(f"Missing Folders {missing_folders}")
                     slicer.util.showStatusMessage(f"Missing Folders {missing_folders}")
             except Exception as e:
                 self.logger.error(f"Error processing folder {foldername}: {str(e)}")
-
 
 class deidTest(ScriptedLoadableModuleTest):
     def setUp(self):
@@ -374,7 +387,7 @@ class DicomProcessor:
 
     def is_substring_in_list(self, substring, string_list):
         return any(substring in string for string in string_list)
-    
+
     def checkCTmeta(self, ds):
         try:
             modality = ""
@@ -422,7 +435,6 @@ class DicomProcessor:
             bundle_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(bundle_dir, filename)
 
-    
     def remove_large_objects(self, mask, max_size):
         labeled_mask = label(mask)  # Label connected components
         if labeled_mask.max() == 0:
@@ -437,20 +449,20 @@ class DicomProcessor:
             largest_mask = (labeled_mask == largest_region.label)
             largest_mask = binary_dilation(largest_mask.astype(np.uint8), disk(4, dtype=bool))
             filled_mask = binary_fill_holes(largest_mask).astype(np.uint8)
-            new_mask[filled_mask==1]=0
+            new_mask[filled_mask == 1] = 0
         except Exception as e:
             return mask
         return new_mask
 
     def detect_text_regions_east(self, image):
         mask = image.copy()
-        mask[image>0]=1
+        mask[image > 0] = 1
         mask[image < 0] = 0
         mask = self.remove_large_objects(mask, 100)
         mask = binary_dilation(mask.astype(np.uint8), disk(4, dtype=bool))
         return mask
 
-    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', name='De-identification',
+    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', name='Anonymized',
                              remove_text=False):
         dicom_files = [f for f in os.listdir(original_dir) if self.is_dicom(os.path.join(original_dir, f))]
         errors = []
@@ -493,7 +505,6 @@ class DicomProcessor:
                 except Exception as e:
                     self.error = e
                 ds.remove_private_tags()
-
                 if "OtherPatientIDs" in ds:
                     delattr(ds, "OtherPatientIDs")
                 if "OtherPatientIDsSequence" in ds:
@@ -501,54 +512,205 @@ class DicomProcessor:
                 ds.walk(self.person_names_callback)
                 ds.walk(self.curves_callback)
 
-                ANONYMOUS = "De-identification"
+                ANONYMOUS = "Anonymized"
                 today = time.strftime("%Y%m%d")
                 current_time = datetime.now().strftime("%H%M%S.%f")
 
-                # Iterate over all elements in the dataset
-                arr_name=["birthdate", "accessionnumber", "patientname", "patientid", "address", "phone"]
-                arr_replace=[today, ANONYMOUS, name, id, "None", 0]
-                for tag in ds.dir():
-                    # Check if the tag name contains "UID"
-                    for k in range(len(arr_name)):
-                        condition = arr_name[k]
-                        if (condition in tag.lower()):
-                            element = ds.data_element(tag)  # Access the DataElement by its name
-                            if element:  # Ensure the element exists
-                                #print(f"Updating {tag} (Value: {element.value}) to {arr_replace[k]}")
-                                element.value = arr_replace[k]
-                #requirement tag
+
+                # requirement tag
                 if (0x08, 0x50) not in ds:
                     ds.add_new((0x08, 0x50), 'SH', ANONYMOUS)
                 else:
                     ds[0x08, 0x50].value = ANONYMOUS
-                if (0x10, 0x10) not in ds:
-                    ds.add_new((0x10, 0x10), 'PN', name)
-                else:
-                    ds[0x10, 0x10].value = name
-
                 if (0x10, 0x20) not in ds:
                     ds.add_new((0x10, 0x20), 'LO', id)
                 else:
                     ds[0x10, 0x20].value = id
+                # requirement tag
+                location_tags = [(0x10, 0x10),  # Patient's Name
+                                 (0x10, 0x1000),  # Other Patient IDs
+                                 (0x10, 0x1001),  # Other Patient Names
+                                 (0x10, 0x1005),  # Patient's Birth Name
+                                 (0x10, 0x1040),  # Patient's Address
+                                 (0x10, 0x2154),  # Patient's Telephone Numbers
+                                 (0x10, 0x2295),  # Breed Registration Number
+                                 (0x12, 0x20),  # Clinical Trial Protocol ID
+                                 (0x12, 0x30),  # Clinical Trial Site ID
+                                 (0x12, 0x40),  # Clinical Trial Subject ID
+                                 (0x12, 0x42),  # Clinical Trial Subject Reading ID
+                                 (0x12, 0x71),  # Clinical Trial Series ID
+                                 (0x18, 0x9445),  # (no description - NEMA placeholder)
+                                 (0x20, 0x0010),  # Study ID
+                                 (0x20, 0x9056),  # Stack ID
+                                 (0x32, 0x0A),  # Study Status ID
+                                 (0x32, 0x0C),  # Study Priority ID
+                                 (0x32, 0x12),  # Study ID Issuer
+                                 (0x38, 0x08),  # Visit Status ID
+                                 (0x38, 0x10),  # Admission ID
+                                 (0x38, 0x0400),  # Patient's Institution Residence
+                                 (0x40, 0x31),  # Local Namespace Entity ID
+                                 (0x40, 0x32),  # Universal Entity ID
+                                 (0x40, 0x33),  # Universal Entity ID Type
+                                 (0x40, 0x2016),  # Placer Order Number
+                                 (0x40, 0x2017),  # Filler Order Number
+                                 (0x40, 0xA123),  # Person Name
+                                 (0x70, 0x80),  # Content Label
+                                 (0x0400, 0x0005),  # MAC ID Number
+                                 (0x0400, 0x0020),  # Data Elements Signed
+                                 (0x0400, 0x0564),  # Source of Previous Values
+                                 (0x300A, 0x0182),  # Patient Setup Number
+                                 (0x4008, 0x0040),  # Results ID
+                                 (0x4008, 0x0119),  # Distribution Name
+                                 (0x4008, 0x011A),  # Distribution Address
+                                 (0x4008, 0x0210),  # Interpretation ID
+                                 (0x4008, 0x0212),  # Interpretation Status ID
+                                 (0x10, 0x30),  # Patient's Birth Date
+                                 (0x10, 0x2298),  # Responsible Person Role
+                                 (0x10, 0x0201),  # Timezone Offset From UTC
+                                 (0x0008, 0x0014),  # Instance Creator UID
+                                 (0x0008, 0x0018),  # SOP Instance UID
+                                 (0x0008, 0x010C),  # Coding Scheme UID
+                                 (0x0008, 0x010D),  # Context Group Extension Creator UID
+                                 (0x0008, 0x1150),  # Referenced SOP Class UID
+                                 (0x0008, 0x1155),  # Referenced SOP Instance UID
+                                 (0x0008, 0x3010),  # Irradiation Event UID
+                                 (0x0008, 0x9123),  # Creator-Version UID
+                                 (0x0020, 0x000D),  # Study Instance UID
+                                 (0x0020, 0x000E),  # Series Instance UID
+                                 (0x0020, 0x0052),  # Frame of Reference UID
+                                 (0x0020, 0x0200),  # Synchronization Frame of Reference UID
+                                 (0x0020, 0x9164),  # Dimension Organization UID
+                                 (0x0040, 0xA124),  # UID
+                                 (0x0088, 0x0140),  # Storage Media File-set UID
+                                 (0x0400, 0x0010),  # MAC Calculation Transfer Syntax UID
+                                 (0x0400, 0x0100),  # Digital Signature UID
+                                 (0x3006, 0x0024),  # Referenced Frame of Reference UID
+                                 (0x3006, 0x00C2),  # Related Frame of Reference UID
+                                 (0x0010, 0x2298),  # Responsible Person Role
+                                 (0x0012, 0x0060),  # Clinical Trial Coordinating Center Name
+                                 (0x0038, 0x0011),  # Issuer of Admission ID
+                                 (0x0040, 0x0001),  # Scheduled Station AE Title
+                                 (0x0040, 0x0010),  # Scheduled Station Name
+                                 (0x0040, 0x0035),  # Identifier Type Code
+                                 (0x0040, 0x0241),  # Performed Station AE Title
+                                 (0x0040, 0x0242),  # Performed Station Name
+                                 (0x0040, 0x1010),  # Names of Intended Recipients of Results
+                                 (0x0040, 0x2008),  # Order Entered By
+                                 (0x0040, 0x2009),  # Order Enterer's Location
+                                 (0x0040, 0x2010),  # Order Callback Phone Number
+                                 (0x0040, 0xA075),  # Verifying Observer Name
+                                 (0x0070, 0x0084),  # Content Creator's Name
+                                 (0x0088, 0x0130),  # Storage Media File-set ID
+                                 (0x0400, 0x0115),  # Certificate of Signer
+                                 (0x0400, 0x0120),  # Signature
+                                 (0x3006, 0x00A6),  # ROI Interpreter
+                                 (0x4008, 0x010A),  # Interpretation Transcriber
+                                 (0x4008, 0x010C),  # Interpretation Author
+                                 (0x4008, 0x0114)  # Physician Approving
+                                ]
+                for tag in location_tags:
+                    if tag in ds:
+                        ds[tag].value = ANONYMOUS
 
-                if (0x10, 0x30) not in ds:
-                    ds.add_new((0x10, 0x30), 'DA', today)
-                else:
+
+                # Patient's Birth Date
+                if (0x10, 0x30) in ds:
                     ds[0x10, 0x30].value = today
-                #optional type=3, address, phone
-                try:
-                    ds[0x10, 0x1040].value = ANONYMOUS
-                    ds[0x10, 0x2154].value = ANONYMOUS
-                except Exception as e:
-                    self.error = str(e)
-                try:
-                    ds[0x08, 0x90].value = ANONYMOUS
-                    ds[0x08, 0x1050].value = ANONYMOUS
-                    ds[0x08, 0x1060].value = ANONYMOUS
-                except Exception as e:
-                    self.error = str(e)
+                # Patient's Sex Neutered
+                if (0x0010, 0x2203) in ds and ds[(0x0010, 0x2203)].value.lower() == "unknown":
+                    ds[(0x0010, 0x2203)].value = ""
 
+                # DICOM Tags to check
+                DICOM_TAGS = {
+                    "TimezoneOffset": (0x0008, 0x0201),  # Timezone Offset From UTC
+                    "Country": (0x0010, 0x2150),  # Country of Residence
+                }
+
+                # List of ZIP codes to remove (less than 20,000 inhabitants)
+                EXCLUDED_ZIP_CODES = {"036", "692", "878", "059", "790", "879",
+                                      "063", "821", "884", "102", "823", "890",
+                                      "203", "830", "893", "556", "831"}
+
+                # Check Country of Residence
+                country = ds.get(DICOM_TAGS["Country"], "").value if DICOM_TAGS["Country"] in ds else ""
+                zip_code_tag = (0x0038, 0x0300)
+                if country.strip().upper() != "USA":
+                    # Non-US: Redact all four location tags
+                    for tag in DICOM_TAGS.values():
+                        if tag in ds:
+                            ds[tag].value = ANONYMOUS
+                    # Redact City and State (if available)
+                    city_tag = (0x0010, 0x2152),  # Region of Residence
+                    state_tag = (0x0038, 0x0300)  # Current Patient Location
+                    for tag in [city_tag, state_tag]:
+                        if tag in ds:
+                            ds[tag].value = truncate_zip(ds[zip_code_tag].value)
+                else:
+                    # Redact City and State (if available)
+                    city_tag = (0x0010, 0x2152),  # Region of Residence
+                    state_tag = (0x0038, 0x0300)  # Current Patient Location
+                    for tag in [city_tag, state_tag]:
+                        if tag in ds:
+                            ds[tag].value = self.truncate_zip(ds[zip_code_tag].value)
+
+                # DICOM Tags to Read and Modify
+                DICOM_TAGS = {
+                    "RetrieveAETitle": (0x0008, 0x0054),  # Retrieve AE Title
+                    "ReferringPhysicianName": (0x0008, 0x0090),  # Referring Physician's Name
+                    "ReferringPhysicianAddress": (0x0008, 0x0092),  # Referring Physician's Address
+                    "ReferringPhysicianPhone": (0x0008, 0x0094),  # Referring Physician's Telephone Numbers
+                    "StationName": (0x0008, 0x1010),  # Station Name
+                    "PhysiciansOfRecord": (0x0008, 0x1048),  # Physician(s) of Record
+                    "PerformingPhysicianName": (0x0008, 0x1050),  # Performing Physician's Name
+                    "ReadingPhysicians": (0x0008, 0x1060),  # Name of Physician(s) Reading Study
+                    "OperatorsName": (0x0008, 0x1070),  # Operators' Name
+                    "IssuerOfPatientID": (0x0010, 0x0021),  # Issuer of Patient ID
+                    "ResponsibleOrganization": (0x0010, 0x2299),  # Responsible Organization
+                    "ClinicalTrialSponsor": (0x0012, 0x0010),  # Clinical Trial Sponsor Name
+                    "ClinicalTrialSiteName": (0x0012, 0x0031)  # Clinical Trial Site Name
+                }
+                # Check Country of Residence
+                country_tag = (0x0008, 0x0081)  # Institution Address
+                country = ds.get(country_tag, "").value if country_tag in ds else ""
+                zip_code_tag = (0x0008, 0x0081)  # Institution Address
+                if country.strip().upper() != "USA":
+                    # Non-US: Redact all specified location-related tags
+                    for tag in DICOM_TAGS.values():
+                        if tag in ds:
+                            ds[tag].value = ""
+                    # Redact City and State (if available)
+                    city_tag = (0x0008, 0x0080)  # Institution Name
+                    state_tag = (0x0008, 0x0081)  # Institution Address
+                    for tag in [city_tag, state_tag]:
+                        if tag in ds:
+                            ds[tag].value = ""
+                else:
+                    # Redact City and State (if available)
+                    city_tag = (0x0008, 0x0080)  # Institution Name
+                    state_tag = (0x0008, 0x0081)  # Institution Address
+                    for tag in [city_tag, state_tag]:
+                        if tag in ds:
+                            ds[tag].value = self.truncate_zip(ds[zip_code_tag].value)
+                # Ethnic Group
+                if (0x0010, 0x2160) in ds and ds[(0x0010, 0x2160)].value.lower() == "unknown":
+                    ds[(0x0010, 0x2160)].value = ""
+                """consolidates Race (0010,2201), and saves the updated file."""
+                RACE_TAG = (0x0010, 0x2201)  # Patient's Race
+
+                # Race mapping to consolidated categories
+                RACE_MAPPING = {
+                    "WHITE": "White",
+                    "BLACK OR AFRICAN AMERICAN": "Black",
+                    "BLACK": "Black",
+                    "ASIAN": "Asian",
+                    "PACIFIC ISLANDER": "Asian",
+                    "AMERICAN INDIAN": "Asian",
+                    "NATIVE INDIAN": "Asian"
+                }
+                if RACE_TAG in ds:
+                    race_value = ds[RACE_TAG].value.strip().upper() if ds[RACE_TAG].value else "Other"
+                    ds[RACE_TAG].value = RACE_MAPPING.get(race_value, "Other")
+                        
                 new_slice = (new_volume - ds.RescaleIntercept) / ds.RescaleSlope
                 ds.PixelData = new_slice.astype(np.int16).tobytes()
                 new_file_name = f"{id}_{i:05d}.dcm"
@@ -564,7 +726,15 @@ class DicomProcessor:
 
         return errors
 
-    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', name='De-identification', remove_text=False):
+    def truncate_zip(self, zip_code):
+        """Truncate ZIP code to 3 digits and remove excluded ZIPs."""
+        if not zip_code or len(zip_code) < 3:
+            return ""
+        zip_prefix = str(zip_code)[:3]
+        return zip_prefix if zip_prefix not in EXCLUDED_ZIP_CODES else ""
+
+    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', name='De-identification',
+                     remove_text=False):
         try:
             for root, dirs, files in os.walk(in_path):
                 relative_path = os.path.relpath(root, in_path)
