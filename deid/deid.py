@@ -23,6 +23,10 @@ import random
 from skimage.measure import label, regionprops
 from scipy.ndimage import binary_fill_holes
 from skimage.morphology import disk, binary_dilation
+from pydicom.uid import generate_uid
+from collections import defaultdict
+from pydicom.datadict import keyword_for_tag
+import easyocr
 
 FACE_MAX_VALUE = 50
 FACE_MIN_VALUE = -125
@@ -32,7 +36,7 @@ KERNEL_SIZE = 30
 ERROR = ""
 import pydicom
 import numpy as np
-
+reader = easyocr.Reader(['en'])
 
 class deid(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
@@ -292,6 +296,9 @@ class DicomProcessor:
     def __init__(self):
         self.error = ""
         self.net = ""
+        self.study_uid_map = defaultdict(str)
+        self.series_uid_map = defaultdict(str)
+        self.sop_uid_map = defaultdict(str)
 
     def is_dicom(self, file_path):
         try:
@@ -454,13 +461,47 @@ class DicomProcessor:
             return mask
         return new_mask
 
-    def detect_text_regions_east(self, image):
-        mask = image.copy()
-        mask[image > 0] = 1
-        mask[image < 0] = 0
-        mask = self.remove_large_objects(mask, 100)
-        mask = binary_dilation(mask.astype(np.uint8), disk(4, dtype=bool))
-        return mask
+    # Function to detect text regions using MSER
+    def find_text_regions_mser(self, image):
+        # Convert the image to grayscale (if it's not already)
+        if len(image.shape) == 3:  # If it's a color image
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+
+        # Initialize MSER detector
+        mser = cv2.MSER_create()
+
+        # Detect regions in the image
+        regions, _ = mser.detectRegions(gray)
+
+        # Filter out regions based on bounding box size
+        text_regions = []
+        for region in regions:
+            x, y, w, h = cv2.boundingRect(region.reshape(-1, 1, 2))
+            aspect_ratio = w / float(h)
+            # Filter based on aspect ratio and region size (tunable parameters)
+            if 10 < w < 1000 and 10 < h < 300 and 0.2 < aspect_ratio < 10:
+                text_regions.append((x, y, w, h))
+        
+        return text_regions
+
+    # Function to recognize text and redact CT-related information
+    def recognize_and_redact_text(self, image, text_regions):
+        for (x, y, w, h) in text_regions:
+            # Extract the region of interest (ROI)
+            roi = image[y:y + h, x:x + w]
+
+            # Use pytesseract to recognize text in the region
+            text = pytesseract.image_to_string(roi, config='--psm 6')
+            print(f"Detected text: {text}")
+
+            # Check if the detected text is CT-related
+            if "CT" in text or "Computed Tomography" in text:
+                # Redact the text by blacking out the region
+                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)  # Draw black rectangle
+
+        return image
 
     def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', name='Anonymized',
                              remove_text=False):
@@ -494,12 +535,24 @@ class DicomProcessor:
                         unique_values_list = self.apply_mask_and_get_values(pixels_hu,
                                                                             dilated_volume - processed_volume)
 
-                if remove_text == True:
-                    min_val = np.min(pixels_hu)
-                    text_regions = self.detect_text_regions_east(pixels_hu)
-                    pixels_hu[text_regions == 1] = min_val
                 new_volume = self.apply_random_values_optimized(pixels_hu, dilated_volume, unique_values_list)
+                if remove_text == True:
+                    #draw text
+                    min_val = np.min(pixels_hu)
+                    max_val = np.max(pixels_hu)
+                    if len(image.shape) == 2:  # Grayscale
+                        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
+                    # Perform OCR on the image
+                    results = reader.readtext(image)
+
+                    for (bbox, text, prob) in results:
+                        if prob > 0.6:  # Confidence threshold
+                            (top_left, bottom_right) = (tuple(map(int, bbox[0])), tuple(map(int, bbox[2])))
+                            cv2.rectangle(new_volume, top_left, bottom_right, (255, 255, 255), thickness=cv2.FILLED)  # Black out
+
+                    new_volume = min_val + (max_val - min_val) * (new_volume / 255.0)
+                
                 try:
                     ds.decompress()
                 except Exception as e:
@@ -514,7 +567,6 @@ class DicomProcessor:
 
                 ANONYMOUS = "Anonymized"
                 today = time.strftime("%Y%m%d")
-                current_time = datetime.now().strftime("%H%M%S.%f")
 
 
                 # requirement tag
@@ -527,7 +579,7 @@ class DicomProcessor:
                 else:
                     ds[0x10, 0x20].value = id
                 # requirement tag
-                location_tags = [(0x10, 0x10),  # Patient's Name
+                requirement_tags = [(0x10, 0x10),  # Patient's Name
                                  (0x10, 0x1000),  # Other Patient IDs
                                  (0x10, 0x1001),  # Other Patient Names
                                  (0x10, 0x1005),  # Patient's Birth Name
@@ -567,25 +619,6 @@ class DicomProcessor:
                                  (0x10, 0x30),  # Patient's Birth Date
                                  (0x10, 0x2298),  # Responsible Person Role
                                  (0x10, 0x0201),  # Timezone Offset From UTC
-                                 (0x0008, 0x0014),  # Instance Creator UID
-                                 (0x0008, 0x0018),  # SOP Instance UID
-                                 (0x0008, 0x010C),  # Coding Scheme UID
-                                 (0x0008, 0x010D),  # Context Group Extension Creator UID
-                                 (0x0008, 0x1150),  # Referenced SOP Class UID
-                                 (0x0008, 0x1155),  # Referenced SOP Instance UID
-                                 (0x0008, 0x3010),  # Irradiation Event UID
-                                 (0x0008, 0x9123),  # Creator-Version UID
-                                 (0x0020, 0x000D),  # Study Instance UID
-                                 (0x0020, 0x000E),  # Series Instance UID
-                                 (0x0020, 0x0052),  # Frame of Reference UID
-                                 (0x0020, 0x0200),  # Synchronization Frame of Reference UID
-                                 (0x0020, 0x9164),  # Dimension Organization UID
-                                 (0x0040, 0xA124),  # UID
-                                 (0x0088, 0x0140),  # Storage Media File-set UID
-                                 (0x0400, 0x0010),  # MAC Calculation Transfer Syntax UID
-                                 (0x0400, 0x0100),  # Digital Signature UID
-                                 (0x3006, 0x0024),  # Referenced Frame of Reference UID
-                                 (0x3006, 0x00C2),  # Related Frame of Reference UID
                                  (0x0010, 0x2298),  # Responsible Person Role
                                  (0x0012, 0x0060),  # Clinical Trial Coordinating Center Name
                                  (0x0038, 0x0011),  # Issuer of Admission ID
@@ -608,10 +641,70 @@ class DicomProcessor:
                                  (0x4008, 0x010C),  # Interpretation Author
                                  (0x4008, 0x0114)  # Physician Approving
                                 ]
-                for tag in location_tags:
+                for tag in requirement_tags:
                     if tag in ds:
-                        ds[tag].value = ANONYMOUS
+                        tag_name = keyword_for_tag(tag)
+                        tag_vr = ds[tag].VR  # Check VR type
+                        # Check tag name and VR type
+                        if "ID" in tag_name:
+                            ds[tag].value = "0"
+                        elif tag_vr == "DA":  # If VR is Date
+                            ds[tag].value = "00010101"  # Valid DA value
+                        else:
+                            ds[tag].value = ANONYMOUS
+                            
 
+                # requirement tag
+                uid_tags = [
+                                 (0x0008, 0x0014),  # Instance Creator UID
+                                 #(0x0008, 0x0018),  # SOP Instance UID
+                                 (0x0008, 0x010C),  # Coding Scheme UID
+                                 (0x0008, 0x010D),  # Context Group Extension Creator UID
+                                 (0x0008, 0x1150),  # Referenced SOP Class UID
+                                 (0x0008, 0x1155),  # Referenced SOP Instance UID
+                                 (0x0008, 0x3010),  # Irradiation Event UID
+                                 (0x0008, 0x9123),  # Creator-Version UID
+                                 #(0x0020, 0x000D),  # Study Instance UID
+                                 #(0x0020, 0x000E),  # Series Instance UID
+                                 (0x0020, 0x0052),  # Frame of Reference UID
+                                 (0x0020, 0x0200),  # Synchronization Frame of Reference UID
+                                 (0x0020, 0x9164),  # Dimension Organization UID
+                                 (0x0040, 0xA124),  # UID
+                                 (0x0088, 0x0140),  # Storage Media File-set UID
+                                 (0x0400, 0x0010),  # MAC Calculation Transfer Syntax UID
+                                 (0x0400, 0x0100),  # Digital Signature UID
+                                 (0x3006, 0x0024),  # Referenced Frame of Reference UID
+                                 (0x3006, 0x00C2),  # Related Frame of Reference UID
+                                ]
+                """if (0x0020, 0x000E) in ds:
+                    series_uid = str(ds[0x0020, 0x000E].value)
+                    if series_uid and series_uid not in self.series_uid_map:
+                        self.series_uid_map[series_uid] = generate_uid()
+                    ds[0x0020, 0x000E].value = self.series_uid_map.get(series_uid, generate_uid())
+                if (0x0020, 0x000D) in ds:
+                    study_uid = str(ds[0x0020, 0x000D].value)
+                    if study_uid and study_uid not in self.study_uid_map:
+                        self.study_uid_map[study_uid] = generate_uid()
+                    ds[0x0020, 0x000D].value = self.study_uid_map.get(study_uid, generate_uid())
+                if (0x0008, 0x0018) in ds:
+                    sop_uid = str(ds[0x0008, 0x0018].value)
+                    if sop_uid and sop_uid not in self.sop_uid_map:
+                        self.sop_uid_map[sop_uid] = generate_uid()
+                    ds[0x0008, 0x0018].value = self.sop_uid_map.get(sop_uid, generate_uid())"""
+
+
+                for tag in uid_tags:
+                    if tag in ds:
+                        original_value = str(ds[tag].value)
+                        # Validate original UID format
+                        try:
+                            if len(original_value) <= 64 and all(part.isdigit() for part in original_value.split('.')):
+                                # Generate new UID
+                                ds[tag].value = generate_uid()
+                            else:
+                                ds[tag].value = ANONYMOUS
+                        except Exception as e:
+                             ds[tag].value = 0
 
                 # Patient's Birth Date
                 if (0x10, 0x30) in ds:
@@ -624,35 +717,12 @@ class DicomProcessor:
                 DICOM_TAGS = {
                     "TimezoneOffset": (0x0008, 0x0201),  # Timezone Offset From UTC
                     "Country": (0x0010, 0x2150),  # Country of Residence
+                    "city_tag": (0x0010, 0x2152),  # Region of Residence
+                    "state": (0x0038, 0x0300),  # Current Patient Location
                 }
-
-                # List of ZIP codes to remove (less than 20,000 inhabitants)
-                EXCLUDED_ZIP_CODES = {"036", "692", "878", "059", "790", "879",
-                                      "063", "821", "884", "102", "823", "890",
-                                      "203", "830", "893", "556", "831"}
-
-                # Check Country of Residence
-                country = ds.get(DICOM_TAGS["Country"], "").value if DICOM_TAGS["Country"] in ds else ""
-                zip_code_tag = (0x0038, 0x0300)
-                if country.strip().upper() != "USA":
-                    # Non-US: Redact all four location tags
-                    for tag in DICOM_TAGS.values():
-                        if tag in ds:
-                            ds[tag].value = ANONYMOUS
-                    # Redact City and State (if available)
-                    city_tag = (0x0010, 0x2152),  # Region of Residence
-                    state_tag = (0x0038, 0x0300)  # Current Patient Location
-                    for tag in [city_tag, state_tag]:
-                        if tag in ds:
-                            ds[tag].value = truncate_zip(ds[zip_code_tag].value)
-                else:
-                    # Redact City and State (if available)
-                    city_tag = (0x0010, 0x2152),  # Region of Residence
-                    state_tag = (0x0038, 0x0300)  # Current Patient Location
-                    for tag in [city_tag, state_tag]:
-                        if tag in ds:
-                            ds[tag].value = self.truncate_zip(ds[zip_code_tag].value)
-
+                for tag in DICOM_TAGS.values():
+                    if tag in ds:
+                        ds[tag].value = ANONYMOUS
                 # DICOM Tags to Read and Modify
                 DICOM_TAGS = {
                     "RetrieveAETitle": (0x0008, 0x0054),  # Retrieve AE Title
@@ -667,36 +737,18 @@ class DicomProcessor:
                     "IssuerOfPatientID": (0x0010, 0x0021),  # Issuer of Patient ID
                     "ResponsibleOrganization": (0x0010, 0x2299),  # Responsible Organization
                     "ClinicalTrialSponsor": (0x0012, 0x0010),  # Clinical Trial Sponsor Name
-                    "ClinicalTrialSiteName": (0x0012, 0x0031)  # Clinical Trial Site Name
+                    "ClinicalTrialSiteName": (0x0012, 0x0031),  # Clinical Trial Site Name
+                    "city": (0x0008, 0x0080),  # Institution Name
+                    "state": (0x0008, 0x0081),  # Institution Address
                 }
-                # Check Country of Residence
-                country_tag = (0x0008, 0x0081)  # Institution Address
-                country = ds.get(country_tag, "").value if country_tag in ds else ""
-                zip_code_tag = (0x0008, 0x0081)  # Institution Address
-                if country.strip().upper() != "USA":
-                    # Non-US: Redact all specified location-related tags
-                    for tag in DICOM_TAGS.values():
-                        if tag in ds:
-                            ds[tag].value = ""
-                    # Redact City and State (if available)
-                    city_tag = (0x0008, 0x0080)  # Institution Name
-                    state_tag = (0x0008, 0x0081)  # Institution Address
-                    for tag in [city_tag, state_tag]:
-                        if tag in ds:
-                            ds[tag].value = ""
-                else:
-                    # Redact City and State (if available)
-                    city_tag = (0x0008, 0x0080)  # Institution Name
-                    state_tag = (0x0008, 0x0081)  # Institution Address
-                    for tag in [city_tag, state_tag]:
-                        if tag in ds:
-                            ds[tag].value = self.truncate_zip(ds[zip_code_tag].value)
+                for tag in DICOM_TAGS.values():
+                    if tag in ds:
+                        ds[tag].value = ""
                 # Ethnic Group
                 if (0x0010, 0x2160) in ds and ds[(0x0010, 0x2160)].value.lower() == "unknown":
                     ds[(0x0010, 0x2160)].value = ""
                 """consolidates Race (0010,2201), and saves the updated file."""
                 RACE_TAG = (0x0010, 0x2201)  # Patient's Race
-
                 # Race mapping to consolidated categories
                 RACE_MAPPING = {
                     "WHITE": "White",
