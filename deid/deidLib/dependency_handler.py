@@ -106,6 +106,12 @@ class NonSlicerPythonDependencies(DependenciesBase):
         if not self._checkModuleInstalled(packageName):
           logging.debug("scikit-image package is required. Installing... (it may take several minutes)")
           install(packageName)
-            
+
+        logging.debug("Initializing easyocr ...")
+        packageName = "easyocr"
+        if not self._checkModuleInstalled(packageName):
+          logging.debug("easyocr package is required. Installing... (it may take several minutes)")
+          install(packageName)
+
         self.dependenciesInstalled = True
         logging.debug("Dependencies are set up successfully.")
