@@ -18,10 +18,11 @@ The idea of removing text within images: Using morphology and Keeping the larges
 This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.
 
 6) References:
+
 [1] David A Clunie, Adam Flanders, Adam Taylor, Brad Erickson, Brian Bialecki, David Brundage, et. al., (2023). Report of the Medical Image De-Identification (MIDI) Task Group - Best Practices and Recommendations, arXiv:2303.10473v2 
-<br/>
+
 [2] Scott A. Collins, Jing Wu, Harrison X. Bai. (2020). Facial De-identification of Head CT Scans. Radiology, 296(1), doi:10.1148/radiol.2020192617
-<br/>
+
 [3] https://github.com/kitamura-felipe/face_deid_ct
 
 7) Install as Slicer extension
