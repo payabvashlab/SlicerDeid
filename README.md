@@ -1,5 +1,6 @@
 # De-identification
 <h2>This project is under development</h2>
+
 1) Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging and Com-munications in Medicine (DICOM) metadata as well as facial features, raising privacy concerns. This demonstrates the need for effective de-identification tools to protect patient privacy [1]. 
 =>This is a Slicer extension removing Personally Identifiable Information (PII) from head CT dicom
 
@@ -35,7 +36,6 @@ The structure of a Dicom folder: The Dicom Folder must directly contain patient 
 The Excel file has two columns: Accession_number, De-identification_ID
 3.	Select Output Folder
 4.	Click Apply
-- Can be set up as a standalone application
 
 ## License
 This software is licensed under the terms of the Apache Licence Version 2.0
