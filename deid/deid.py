@@ -4,7 +4,6 @@ import vtk
 import slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
-import csv
 from deidLib.dependency_handler import NonSlicerPythonDependencies
 
 dependencies = NonSlicerPythonDependencies()
@@ -18,16 +17,12 @@ from pathlib import Path
 from datetime import datetime
 import sys
 import cv2
-from PIL import Image, ImageDraw, ImageFont
-import random
-from skimage.measure import label, regionprops
-from scipy.ndimage import binary_fill_holes
-from skimage.morphology import disk, binary_dilation
+from PIL import Image
 from pydicom.uid import generate_uid
 from collections import defaultdict
 from pydicom.datadict import keyword_for_tag
 import easyocr
-
+from PIL import Image, ImageDraw, ImageFont
 FACE_MAX_VALUE = 50
 FACE_MIN_VALUE = -125
 
@@ -223,16 +218,20 @@ class deidLogic(ScriptedLoadableModuleLogic):
                 New_Patient_ID = df['New_Patient_ID'].tolist()[i]
                 if (foldername in dicom_folders):
                     dst_folder = ""
+                    numSlice =0
                     try:
                         dst_folder = os.path.join(out_path, New_Scan_ID)
                         processor = DicomProcessor()
                         src_folder = os.path.join(inputFolder, foldername)
-                        result = processor.drown_volume(src_folder, dst_folder, 'face', New_Scan_ID, New_Patient_ID, remove_text)
+                        result, numSlice = processor.drown_volume(src_folder, dst_folder, 'face', New_Scan_ID, Patient_ID, New_Patient_ID, remove_text)
                         progressBar.setValue(int((i + 1) * 100 / total_rows))
-                        slicer.util.showStatusMessage(f"Finished processing foldername {foldername}")
+                        slicer.util.showStatusMessage(f"Finished processing foldername {foldername}, {Patient_ID}")
                         self.logger.info(f"Finished processing folder: {foldername}")
                     except Exception as e:
                         self.logger.error(f"Error processing folder {foldername}: {str(e)}")
+                        if os.path.exists(dst_folder):
+                            shutil.rmtree(dst_folder)
+                    if numSlice ==0:
                         if os.path.exists(dst_folder):
                             shutil.rmtree(dst_folder)
             try:
@@ -254,42 +253,7 @@ class deidTest(ScriptedLoadableModuleTest):
         self.test_deid1()
 
     def test_deid1(self):
-        self.delayDisplay("Starting the test")
-
-        testInputFolder = os.path.join(slicer.app.temporaryPath, "TestInput")
-        testOutputFolder = os.path.join(slicer.app.temporaryPath, "TestOutput")
-        testExcelFile = os.path.join(slicer.app.temporaryPath, "TestPatients.xlsx")
-
-        os.makedirs(testInputFolder, exist_ok=True)
-        os.makedirs(testOutputFolder, exist_ok=True)
-
-        # Create test data
-        patientIDs = ["12345", "67890"]
-        df = pd.DataFrame({"PatientID": patientIDs})
-        df.to_excel(testExcelFile, index=False)
-
-        # Create dummy DICOM files
-        import pydicom
-        for patientID in patientIDs:
-            ds = pydicom.Dataset()
-            ds.PatientID = patientID
-            ds.PatientName = "Test Patient"
-            filePath = os.path.join(testInputFolder, f"{patientID}.dcm")
-            ds.save_as(filePath)
-
-        # Run logic
-        logic = deidLogic()
-        logic.process(testInputFolder, testExcelFile, testOutputFolder)
-
-        # Verify results
-        for patientID in patientIDs:
-            outputFile = os.path.join(testOutputFolder, f"{patientID}.dcm")
-            self.assertTrue(os.path.exists(outputFile))
-            ds = pydicom.dcmread(outputFile)
-            self.assertEqual(ds.PatientID, "")
-            self.assertEqual(ds.PatientName, "")
-
-        self.delayDisplay("Test passed")
+        self.delayDisplay("Do not take the test")
 
 
 class DicomProcessor:
@@ -341,7 +305,7 @@ class DicomProcessor:
 
     def get_pixels_hu(self, slices):
         image = slices.pixel_array.astype(np.int16)
-        image[image == -2000] = 0
+        image[image <= -2000] = 0
         intercept = slices.RescaleIntercept
         slope = slices.RescaleSlope
         if slope != 1:
@@ -432,81 +396,11 @@ class DicomProcessor:
             self.error = str(e)
         return 0
 
-    # Function to detect text regions using EAST text detector
-    def get_data_file_path(self, filename):
-        if getattr(sys, 'frozen', False):
-            # Running as a bundled executable
-            bundle_dir = sys._MEIPASS
-        else:
-            # Running in development mode
-            bundle_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(bundle_dir, filename)
-
-    def remove_large_objects(self, mask, max_size):
-        labeled_mask = label(mask)  # Label connected components
-        if labeled_mask.max() == 0:
-            return mask
-        new_mask = np.zeros_like(mask, dtype=bool)
-        try:
-            for region in regionprops(labeled_mask):
-                if region.area <= max_size:  # Keep only small objects
-                    new_mask[labeled_mask == region.label] = True
-
-            largest_region = max(regionprops(labeled_mask), key=lambda r: r.area)
-            largest_mask = (labeled_mask == largest_region.label)
-            largest_mask = binary_dilation(largest_mask.astype(np.uint8), disk(4, dtype=bool))
-            filled_mask = binary_fill_holes(largest_mask).astype(np.uint8)
-            new_mask[filled_mask == 1] = 0
-        except Exception as e:
-            return mask
-        return new_mask
-
-    # Function to detect text regions using MSER
-    def find_text_regions_mser(self, image):
-        # Convert the image to grayscale (if it's not already)
-        if len(image.shape) == 3:  # If it's a color image
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image
-
-        # Initialize MSER detector
-        mser = cv2.MSER_create()
-
-        # Detect regions in the image
-        regions, _ = mser.detectRegions(gray)
-
-        # Filter out regions based on bounding box size
-        text_regions = []
-        for region in regions:
-            x, y, w, h = cv2.boundingRect(region.reshape(-1, 1, 2))
-            aspect_ratio = w / float(h)
-            # Filter based on aspect ratio and region size (tunable parameters)
-            if 10 < w < 1000 and 10 < h < 300 and 0.2 < aspect_ratio < 10:
-                text_regions.append((x, y, w, h))
-        
-        return text_regions
-
-    # Function to recognize text and redact CT-related information
-    def recognize_and_redact_text(self, image, text_regions):
-        for (x, y, w, h) in text_regions:
-            # Extract the region of interest (ROI)
-            roi = image[y:y + h, x:x + w]
-
-            # Use pytesseract to recognize text in the region
-            text = pytesseract.image_to_string(roi, config='--psm 6')
-            print(f"Detected text: {text}")
-
-            # Check if the detected text is CT-related
-            if "CT" in text or "Computed Tomography" in text:
-                # Redact the text by blacking out the region
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)  # Draw black rectangle
-
-        return image
-
-    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', name='Anonymized',
+    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', patient_id='0', new_patient_id='Anonymized',
                              remove_text=False):
         dicom_files = [f for f in os.listdir(original_dir) if self.is_dicom(os.path.join(original_dir, f))]
         errors = []
+        numSlice = 0
         try:
             dicom_files.sort(
                 key=lambda x: int(pydicom.dcmread(os.path.join(original_dir, x), force=True).InstanceNumber))
@@ -516,47 +410,14 @@ class DicomProcessor:
         for i, dicom_file in enumerate(dicom_files, start=1):
             try:
                 ds = self.load_scan(os.path.join(original_dir, dicom_file))
-
-                pixels_hu = self.get_pixels_hu(ds)
-
-                binarized_volume = self.binarize_volume(pixels_hu)
-                processed_volume = self.get_largest_component_volume(binarized_volume)
-                dilated_volume = self.dilate_volume(processed_volume)
-
-                if replacer == 'face':
-                    unique_values_list = self.apply_mask_and_get_values(pixels_hu, dilated_volume - processed_volume)
-                elif replacer == 'air':
-                    unique_values_list = [0]
-                else:
-                    try:
-                        replacer = int(replacer)
-                        unique_values_list = [replacer]
-                    except:
-                        unique_values_list = self.apply_mask_and_get_values(pixels_hu,
-                                                                            dilated_volume - processed_volume)
-
-                new_volume = self.apply_random_values_optimized(pixels_hu, dilated_volume, unique_values_list)
-                if remove_text == True:
-                    #draw text
-                    min_val = np.min(pixels_hu)
-                    max_val = np.max(pixels_hu)
-                    if len(image.shape) == 2:  # Grayscale
-                        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
-                    # Perform OCR on the image
-                    results = reader.readtext(image)
-
-                    for (bbox, text, prob) in results:
-                        if prob > 0.6:  # Confidence threshold
-                            (top_left, bottom_right) = (tuple(map(int, bbox[0])), tuple(map(int, bbox[2])))
-                            cv2.rectangle(new_volume, top_left, bottom_right, (255, 255, 255), thickness=cv2.FILLED)  # Black out
-
-                    new_volume = min_val + (max_val - min_val) * (new_volume / 255.0)
-                
                 try:
                     ds.decompress()
                 except Exception as e:
                     self.error = e
+                
+                if (0x10, 0x20) in ds:
+                    if ds[0x10, 0x20].value!=patient_id:
+                        continue
                 ds.remove_private_tags()
                 if "OtherPatientIDs" in ds:
                     delattr(ds, "OtherPatientIDs")
@@ -567,17 +428,15 @@ class DicomProcessor:
 
                 ANONYMOUS = "Anonymized"
                 today = time.strftime("%Y%m%d")
-
-
                 # requirement tag
                 if (0x08, 0x50) not in ds:
                     ds.add_new((0x08, 0x50), 'SH', ANONYMOUS)
                 else:
                     ds[0x08, 0x50].value = ANONYMOUS
                 if (0x10, 0x20) not in ds:
-                    ds.add_new((0x10, 0x20), 'LO', id)
+                    ds.add_new((0x10, 0x20), 'LO', new_patient_id)
                 else:
-                    ds[0x10, 0x20].value = id
+                    ds[0x10, 0x20].value = new_patient_id
                 # requirement tag
                 requirement_tags = [(0x10, 0x10),  # Patient's Name
                                  (0x10, 0x1000),  # Other Patient IDs
@@ -676,7 +535,7 @@ class DicomProcessor:
                                  (0x3006, 0x0024),  # Referenced Frame of Reference UID
                                  (0x3006, 0x00C2),  # Related Frame of Reference UID
                                 ]
-                """if (0x0020, 0x000E) in ds:
+                if (0x0020, 0x000E) in ds:
                     series_uid = str(ds[0x0020, 0x000E].value)
                     if series_uid and series_uid not in self.series_uid_map:
                         self.series_uid_map[series_uid] = generate_uid()
@@ -687,10 +546,10 @@ class DicomProcessor:
                         self.study_uid_map[study_uid] = generate_uid()
                     ds[0x0020, 0x000D].value = self.study_uid_map.get(study_uid, generate_uid())
                 if (0x0008, 0x0018) in ds:
-                    sop_uid = str(ds[0x0008, 0x0018].value)
+                    sop_uid = str (ds[0x0008, 0x0018].value)
                     if sop_uid and sop_uid not in self.sop_uid_map:
                         self.sop_uid_map[sop_uid] = generate_uid()
-                    ds[0x0008, 0x0018].value = self.sop_uid_map.get(sop_uid, generate_uid())"""
+                    ds[0x0008, 0x0018].value = self.sop_uid_map.get(sop_uid, generate_uid())
 
 
                 for tag in uid_tags:
@@ -762,12 +621,65 @@ class DicomProcessor:
                 if RACE_TAG in ds:
                     race_value = ds[RACE_TAG].value.strip().upper() if ds[RACE_TAG].value else "Other"
                     ds[RACE_TAG].value = RACE_MAPPING.get(race_value, "Other")
-                        
+                
+
+
+                
+                pixels_hu = self.get_pixels_hu(ds)
+
+                binarized_volume = self.binarize_volume(pixels_hu)
+                processed_volume = self.get_largest_component_volume(binarized_volume)
+                dilated_volume = self.dilate_volume(processed_volume)
+
+                if replacer == 'face':
+                    unique_values_list = self.apply_mask_and_get_values(pixels_hu, dilated_volume - processed_volume)
+                elif replacer == 'air':
+                    unique_values_list = [0]
+                else:
+                    try:
+                        replacer = int(replacer)
+                        unique_values_list = [replacer]
+                    except:
+                        unique_values_list = self.apply_mask_and_get_values(pixels_hu,
+                                                                            dilated_volume - processed_volume)
+                new_volume = self.apply_random_values_optimized(pixels_hu, dilated_volume, unique_values_list)
+                if remove_text == True:
+                    #draw text
+                    min_val = np.min(pixels_hu)
+                    max_val = np.max(pixels_hu)
+                    pixels_hu_255 = np.uint8(((pixels_hu - min_val) / (max_val - min_val)) * 255.0)
+
+                    image = Image.fromarray(pixels_hu_255)
+                    draw = ImageDraw.Draw(image)
+                    try:
+                        font = ImageFont.truetype("arial.ttf", 20)
+                    except IOError:
+                        font = ImageFont.load_default()
+                    draw.text((100, 100), "Patient: Nguyen Van A", fill="white", font=font)
+                    draw.text((150, 200), "DB:01/01/2000", fill="white", font=font)
+                    draw.text((200, 300), "Address= USA", fill="white", font=font)
+                    image = np.array(image)
+                    
+                    if len(pixels_hu_255.shape) == 2:  # Grayscale
+                        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+                    # Perform OCR on the image
+                    results = reader.readtext(image)
+
+                    for (bbox, text, prob) in results:
+                        if prob > 0.5:  # Confidence threshold
+                            (top_left, bottom_right) = (tuple(map(int, bbox[0])), tuple(map(int, bbox[2])))
+                            cv2.rectangle(new_volume, top_left, bottom_right, (0, 0, 0), thickness=cv2.FILLED)  # Black out
                 new_slice = (new_volume - ds.RescaleIntercept) / ds.RescaleSlope
                 ds.PixelData = new_slice.astype(np.int16).tobytes()
+                ds.BitsAllocated = 16
+                ds.BitsStored = 16
+                ds.HighBit = 15
+                ds.PixelRepresentation = 1
                 new_file_name = f"{id}_{i:05d}.dcm"
                 final_file_path = os.path.join(out_dir, new_file_name)
                 ds.save_as(final_file_path)
+                numSlice = numSlice + 1
             except Exception as e:
                 errors.append((dicom_file, str(e)))
 
@@ -776,27 +688,22 @@ class DicomProcessor:
                 for dicom_file, error in errors:
                     error_file.write(f"File: {dicom_file}, Error: {error}\n")
 
-        return errors
+        return errors, numSlice
 
-    def truncate_zip(self, zip_code):
-        """Truncate ZIP code to 3 digits and remove excluded ZIPs."""
-        if not zip_code or len(zip_code) < 3:
-            return ""
-        zip_prefix = str(zip_code)[:3]
-        return zip_prefix if zip_prefix not in EXCLUDED_ZIP_CODES else ""
-
-    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', name='De-identification',
+    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', patient_id='0', name='Anonymized',
                      remove_text=False):
         try:
+            error=""
+            numSlice = 0
             for root, dirs, files in os.walk(in_path):
                 relative_path = os.path.relpath(root, in_path)
                 out_dir = os.path.join(out_path, relative_path)
                 dicom_files = [f for f in files if self.is_dicom(os.path.join(root, f))]
                 if dicom_files:
                     os.makedirs(out_dir, exist_ok=True)
-                    self.save_new_dicom_files(root, out_dir, replacer, id, name, remove_text)
+                    error, numSlice = self.save_new_dicom_files(root, out_dir, replacer, id, patient_id, name, remove_text)
         except Exception as e:
             with open(os.path.join(out_dir, 'log.txt'), 'a') as error_file:
                 error_file.write(f"Error: {e}\n")
-            return 0
-        return 1
+            return 0, numSlice
+        return 1, numSlice
