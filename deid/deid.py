@@ -27,7 +27,7 @@ FACE_MAX_VALUE = 50
 FACE_MIN_VALUE = -125
 
 AIR_THRESHOLD = -800
-KERNEL_SIZE = 30
+KERNEL_SIZE = 20
 ERROR = ""
 import pydicom
 import numpy as np
