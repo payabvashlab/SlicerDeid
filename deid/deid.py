@@ -650,14 +650,14 @@ class DicomProcessor:
                     pixels_hu_255 = np.uint8(((pixels_hu - min_val) / (max_val - min_val)) * 255.0)
 
                     image = Image.fromarray(pixels_hu_255)
-                    draw = ImageDraw.Draw(image)
+                    """draw = ImageDraw.Draw(image)
                     try:
                         font = ImageFont.truetype("arial.ttf", 20)
                     except IOError:
                         font = ImageFont.load_default()
                     draw.text((100, 100), "Patient: Nguyen Van A", fill="white", font=font)
                     draw.text((150, 200), "DB:01/01/2000", fill="white", font=font)
-                    draw.text((200, 300), "Address= USA", fill="white", font=font)
+                    draw.text((200, 300), "Address= USA", fill="white", font=font)"""
                     image = np.array(image)
                     
                     if len(pixels_hu_255.shape) == 2:  # Grayscale
