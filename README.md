@@ -1,4 +1,4 @@
-# De-identification
+# De-identification non-contrast head CT
 <h2>This project is under development</h2>
 
 1) Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging and Com-munications in Medicine (DICOM) metadata as well as facial features, raising privacy concerns. This demonstrates the need for effective de-identification tools to protect patient privacy [1]. 
