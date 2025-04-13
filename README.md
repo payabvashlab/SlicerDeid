@@ -1,6 +1,8 @@
 # De-identification non-contrast head CT
 <h2>This project is under development</h2>
 
+Description:
+
 1) Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging and Com-munications in Medicine (DICOM) metadata as well as facial features, raising privacy concerns. This demonstrates the need for effective de-identification tools to protect patient privacy [1]. 
 =>This is a Slicer extension removing Personally Identifiable Information (PII) from head CT dicom
 
@@ -43,7 +45,7 @@ The kernel size of 20 pixels determines how much fat is removed
 1.	Select Dicom Folder
 The structure of a Dicom folder: The Dicom Folder must directly contain patient folders. Each patient folder may contain subdirectory. The application will process each patient file .dcm and the output has the same structure folder inside
 2.	Browse to Excel File
-The excel sheet input should be adjusted to have four columns with following column titles: Accession_number, New_Scan_ID, Patient_ID, New_Patient_ID
+The excel sheet input should be adjusted to have 2 columns with following column titles: Accession_number, GWTG_ID
 3.	Select Output Folder
 4.	Click Apply
 

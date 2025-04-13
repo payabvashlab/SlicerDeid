@@ -184,11 +184,10 @@ class deidLogic(ScriptedLoadableModuleLogic):
             raise ValueError(f"Excel file does not exist: {excelFile}")
         if not os.path.exists(outputFolder):
             os.makedirs(outputFolder)
-        columns_as_text = ['Accession_number', 'New_Scan_ID', 'Patient_ID', 'New_Patient_ID']
+        columns_as_text = ['Accession_number', 'GWTG_ID'] 
         df = pd.read_excel(excelFile, dtype={col: str for col in columns_as_text})
-        if ("Accession_number" not in df.columns) or ("New_Scan_ID" not in df.columns) or ("Patient_ID" not in df.columns) or ("New_Patient_ID" not in df.columns):
-            raise ValueError(
-                "Excel file must contain a 'Accession_number' and 'New_Scan_ID' and 'Patient_ID' and 'New_Patient_ID' column")
+        if ("Accession_number" not in df.columns) or ("GWTG_ID" not in df.columns):
+            raise ValueError("Excel file must contain a 'Accession_number' and 'GWTG_ID' column")
             return 0
         else:
             try:
@@ -202,29 +201,24 @@ class deidLogic(ScriptedLoadableModuleLogic):
             except Exception as e:
                 self.logger.info(e)
             df['Accession_number'] = df['Accession_number'].astype(str).str.strip()
-            df['New_Scan_ID'] = df['New_Scan_ID'].astype(str).str.strip()
-            df['Patient_ID'] = df['Patient_ID'].astype(str).str.strip()
-            df['New_Patient_ID'] = df['New_Patient_ID'].astype(str).str.strip()
+            df['GWTG_ID'] = df['GWTG_ID'].astype(str).str.strip()
+            id_mapping = dict(zip(df['Accession_number'], df['GWTG_ID']))
             dicom_folders = [d for d in os.listdir(inputFolder) if os.path.isdir(os.path.join(inputFolder, d))]
             total_rows = df.shape[0]
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             out_path = os.path.join(outputFolder, f'Processed for GWTG_{current_time}')
             os.makedirs(out_path, exist_ok=True)
-            
-            for i in range(total_rows):
-                foldername = df['Accession_number'].tolist()[i]
-                New_Scan_ID = df['New_Scan_ID'].tolist()[i]
-                Patient_ID = df['Patient_ID'].tolist()[i]
-                New_Patient_ID = df['New_Patient_ID'].tolist()[i]
-                if (foldername in dicom_folders):
+
+            for i, foldername in enumerate(dicom_folders):
+                if (foldername in id_mapping):
                     dst_folder = ""
                     try:
-                        dst_folder = os.path.join(out_path, New_Scan_ID)
+                        dst_folder = os.path.join(out_path, id_mapping[foldername])
                         processor = DicomProcessor()
                         src_folder = os.path.join(inputFolder, foldername)
-                        result = processor.drown_volume(src_folder, dst_folder, 'face', New_Scan_ID, Patient_ID, New_Patient_ID, remove_text)
-                        progressBar.setValue(int((i + 1) * 100 / total_rows))
-                        slicer.util.showStatusMessage(f"Finished processing foldername {foldername}, {Patient_ID}")
+                        result = processor.drown_volume(src_folder, dst_folder, 'face', id_mapping[foldername], f"Process for GWTG {id_mapping[foldername]}", remove_text)
+                        progressBar.setValue(int((i + 1)* 100/ total_rows)) 
+                        slicer.util.showStatusMessage(f"Finished processing foldername {foldername}")
                         self.logger.info(f"Finished processing folder: {foldername}")
                     except Exception as e:
                         self.logger.error(f"Error processing folder {foldername}: {str(e)}")
