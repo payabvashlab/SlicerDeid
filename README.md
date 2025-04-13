@@ -47,4 +47,14 @@ The excel sheet input should be adjusted to have four columns with following col
 4.	Click Apply
 
 ## License
-This software is licensed under the terms of the Apache Licence Version 2.0
+Copyright (c) 2025 Columbia University
+
+All rights reserved.
+
+This software and its associated documentation are the intellectual property of Columbia University. Use, reproduction, or distribution of this software is prohibited without express written permission from Columbia University.
+
+Individuals or organizations wishing to use this software must contact Columbia University to obtain a license.
+
+Permission to use the software may be granted free of charge on a case-by-case basis.
+
+Contact: sp4479@columbia.edu
