@@ -218,20 +218,16 @@ class deidLogic(ScriptedLoadableModuleLogic):
                 New_Patient_ID = df['New_Patient_ID'].tolist()[i]
                 if (foldername in dicom_folders):
                     dst_folder = ""
-                    numSlice =0
                     try:
                         dst_folder = os.path.join(out_path, New_Scan_ID)
                         processor = DicomProcessor()
                         src_folder = os.path.join(inputFolder, foldername)
-                        result, numSlice = processor.drown_volume(src_folder, dst_folder, 'face', New_Scan_ID, Patient_ID, New_Patient_ID, remove_text)
+                        result = processor.drown_volume(src_folder, dst_folder, 'face', New_Scan_ID, Patient_ID, New_Patient_ID, remove_text)
                         progressBar.setValue(int((i + 1) * 100 / total_rows))
                         slicer.util.showStatusMessage(f"Finished processing foldername {foldername}, {Patient_ID}")
                         self.logger.info(f"Finished processing folder: {foldername}")
                     except Exception as e:
                         self.logger.error(f"Error processing folder {foldername}: {str(e)}")
-                        if os.path.exists(dst_folder):
-                            shutil.rmtree(dst_folder)
-                    if numSlice ==0:
                         if os.path.exists(dst_folder):
                             shutil.rmtree(dst_folder)
             try:
@@ -318,13 +314,6 @@ class DicomProcessor:
         binary_volume = np.zeros_like(volume, dtype=np.uint8)
         binary_volume[volume <= air_hu] = 1
         return binary_volume
-
-    """def largest_connected_component(self, binary_image):
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_image, connectivity=8)
-        largest_component_index = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
-        largest_component_image = np.zeros(labels.shape, dtype=np.uint8)
-        largest_component_image[labels == largest_component_index] = 1
-        return largest_component_image"""
 
     def largest_connected_component(self, binary_image):
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_image, connectivity=8)
@@ -422,11 +411,10 @@ class DicomProcessor:
             self.error = str(e)
         return 0
 
-    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', patient_id='0', new_patient_id='Anonymized',
+    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', patient_id='0', new_patient_id='Processed for GWTG',
                              remove_text=False):
         dicom_files = [f for f in os.listdir(original_dir) if self.is_dicom(os.path.join(original_dir, f))]
         errors = []
-        numSlice = 0
         try:
             dicom_files.sort(
                 key=lambda x: int(pydicom.dcmread(os.path.join(original_dir, x), force=True).InstanceNumber))
@@ -441,9 +429,6 @@ class DicomProcessor:
                 except Exception as e:
                     self.error = e
                 
-                if (0x10, 0x20) in ds:
-                    if ds[0x10, 0x20].value!=patient_id:
-                        continue
                 ds.remove_private_tags()
                 if "OtherPatientIDs" in ds:
                     delattr(ds, "OtherPatientIDs")
@@ -452,7 +437,7 @@ class DicomProcessor:
                 ds.walk(self.person_names_callback)
                 ds.walk(self.curves_callback)
 
-                ANONYMOUS = "Anonymized"
+                ANONYMOUS = "Anomymized"
                 today = time.strftime("%Y%m%d")
                 # requirement tag
                 if (0x08, 0x50) not in ds:
@@ -647,10 +632,7 @@ class DicomProcessor:
                 if RACE_TAG in ds:
                     race_value = ds[RACE_TAG].value.strip().upper() if ds[RACE_TAG].value else "Other"
                     ds[RACE_TAG].value = RACE_MAPPING.get(race_value, "Other")
-                
-
-
-                
+                                
                 pixels_hu = self.get_pixels_hu(ds)
 
                 binarized_volume = self.binarize_volume(pixels_hu)
@@ -705,7 +687,6 @@ class DicomProcessor:
                 new_file_name = f"{id}_{i:05d}.dcm"
                 final_file_path = os.path.join(out_dir, new_file_name)
                 ds.save_as(final_file_path)
-                numSlice = numSlice + 1
             except Exception as e:
                 errors.append((dicom_file, str(e)))
 
@@ -714,22 +695,21 @@ class DicomProcessor:
                 for dicom_file, error in errors:
                     error_file.write(f"File: {dicom_file}, Error: {error}\n")
 
-        return errors, numSlice
+        return errors
 
-    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', patient_id='0', name='Anonymized',
+    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', patient_id='0', name='Processed for GWTG',
                      remove_text=False):
         try:
             error=""
-            numSlice = 0
             for root, dirs, files in os.walk(in_path):
                 relative_path = os.path.relpath(root, in_path)
                 out_dir = os.path.join(out_path, relative_path)
                 dicom_files = [f for f in files if self.is_dicom(os.path.join(root, f))]
                 if dicom_files:
                     os.makedirs(out_dir, exist_ok=True)
-                    error, numSlice = self.save_new_dicom_files(root, out_dir, replacer, id, patient_id, name, remove_text)
+                    error = self.save_new_dicom_files(root, out_dir, replacer, id, patient_id, 'Processed for GWTG', remove_text)
         except Exception as e:
             with open(os.path.join(out_dir, 'log.txt'), 'a') as error_file:
                 error_file.write(f"Error: {e}\n")
-            return 0, numSlice
-        return 1, numSlice
+            return 0
+        return 1
