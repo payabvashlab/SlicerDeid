@@ -5,6 +5,7 @@
 =>This is a Slicer extension removing Personally Identifiable Information (PII) from head CT dicom
 
 2) Link to our project information:
+
 https://professional.heart.org/en/research-programs/aha-funding-opportunities/data-grant-stroke-images <br/>
 https://newsroom.heart.org/news/sharing-brain-images-can-foster-new-neuroscience-discoveries
 
@@ -32,7 +33,7 @@ This tools is work in progress being validated in AHA project. Contact at4049@cu
 
 - Step 3: Remove Identifiable Metadata Tags
 List of all tags we check and remove:
-<a href="https://github.com/payabvashlab/SlicerDeid/documents/DICOM header removal.pdf"> DICOM header removal.pdf </a>
+<a href="https://github.com/payabvashlab/SlicerDeid/documents/dicomTags.pdf"> DICOM header removal.pdf </a>
 Every DICOM tag listed in the Tables need to be replaced by "Anonymized" - except the ones marked with green highlighter
 
 - Step 4: Blurring Facial Features with Morphology-Based Image Processing
