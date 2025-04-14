@@ -45,7 +45,7 @@ The kernel size of 20 pixels determines how much fat is removed
 1.	Select Dicom Folder
 The structure of a Dicom folder: The Dicom Folder must directly contain patient folders. Each patient folder may contain subdirectory. The application will process each patient file .dcm and the output has the same structure folder inside
 2.	Browse to Excel File
-The excel sheet input should be adjusted to have 2 columns with following column titles: Accession_number, GWTG_ID
+The excel sheet input should be adjusted to have 2 columns with following column titles: <b> Accession_number, GWTG_ID </b>
 3.	Select Output Folder
 4.	Click Apply
 
