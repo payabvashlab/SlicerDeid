@@ -36,7 +36,7 @@ This tools is work in progress being validated in AHA project. Contact at4049@cu
 - Step 3: Remove Identifiable Metadata Tags
 List of all tags we check and remove:
 <a href="https://github.com/payabvashlab/SlicerDeid/blob/main/documents/dicomTags.pdf"> DICOM header removal.pdf </a>
-Every DICOM tag listed in the Tables need to be replaced by "Anonymized" - except the ones marked with green highlighter
+Every DICOM tag listed in the Tables need to be replaced by "Anonymized" - except patient_id = 'Processed for GWTG'
 
 - Step 4: Blurring Facial Features with Morphology-Based Image Processing
 The kernel size of 20 pixels determines how much fat is removed
