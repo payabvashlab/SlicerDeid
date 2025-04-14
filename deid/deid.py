@@ -686,7 +686,7 @@ class DicomProcessor:
                 ds.PixelRepresentation = 1
                 new_file_name = f"{id}_{i:05d}.dcm"
                 final_file_path = os.path.join(out_dir, new_file_name)
-                ds.save_as(final_file_path)
+                ds.save_as(final_file_path, write_like_original=False)
             except Exception as e:
                 errors.append((dicom_file, str(e)))
 
