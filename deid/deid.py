@@ -184,10 +184,10 @@ class deidLogic(ScriptedLoadableModuleLogic):
             raise ValueError(f"Excel file does not exist: {excelFile}")
         if not os.path.exists(outputFolder):
             os.makedirs(outputFolder)
-        columns_as_text = ['Accession_number', 'GWTG_ID'] 
+        columns_as_text = ['Accession_number', 'New_ID'] 
         df = pd.read_excel(excelFile, dtype={col: str for col in columns_as_text})
-        if ("Accession_number" not in df.columns) or ("GWTG_ID" not in df.columns):
-            raise ValueError("Excel file must contain a 'Accession_number' and 'GWTG_ID' column")
+        if ("Accession_number" not in df.columns) or ("New_ID" not in df.columns):
+            raise ValueError("Excel file must contain a 'Accession_number' and 'New_ID' column")
             return 0
         else:
             try:
@@ -201,12 +201,12 @@ class deidLogic(ScriptedLoadableModuleLogic):
             except Exception as e:
                 self.logger.info(e)
             df['Accession_number'] = df['Accession_number'].astype(str).str.strip()
-            df['GWTG_ID'] = df['GWTG_ID'].astype(str).str.strip()
-            id_mapping = dict(zip(df['Accession_number'], df['GWTG_ID']))
+            df['New_ID'] = df['New_ID'].astype(str).str.strip()
+            id_mapping = dict(zip(df['Accession_number'], df['New_ID']))
             dicom_folders = [d for d in os.listdir(inputFolder) if os.path.isdir(os.path.join(inputFolder, d))]
             total_rows = df.shape[0]
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out_path = os.path.join(outputFolder, f'Processed for GWTG_{current_time}')
+            out_path = os.path.join(outputFolder, f'Processed for anonymization_{current_time}')
             os.makedirs(out_path, exist_ok=True)
 
             for i, foldername in enumerate(dicom_folders):
@@ -216,7 +216,7 @@ class deidLogic(ScriptedLoadableModuleLogic):
                         dst_folder = os.path.join(out_path, id_mapping[foldername])
                         processor = DicomProcessor()
                         src_folder = os.path.join(inputFolder, foldername)
-                        result = processor.drown_volume(src_folder, dst_folder, 'face', id_mapping[foldername], f"Process for GWTG {id_mapping[foldername]}", remove_text)
+                        result = processor.drown_volume(src_folder, dst_folder, 'face', id_mapping[foldername], f"Processed for anonymization {id_mapping[foldername]}", remove_text)
                         progressBar.setValue(int((i + 1)* 100/ total_rows)) 
                         slicer.util.showStatusMessage(f"Finished processing foldername {foldername}")
                         self.logger.info(f"Finished processing folder: {foldername}")
@@ -405,7 +405,7 @@ class DicomProcessor:
             self.error = str(e)
         return 0
 
-    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='GWTG_ID', patient_id='0', new_patient_id='Processed for GWTG',
+    def save_new_dicom_files(self, original_dir, out_dir, replacer='face', id='New_ID', patient_id='0', new_patient_id='Processed for anonymization',
                              remove_text=False):
         dicom_files = [f for f in os.listdir(original_dir) if self.is_dicom(os.path.join(original_dir, f))]
         errors = []
@@ -431,20 +431,26 @@ class DicomProcessor:
                 ds.walk(self.person_names_callback)
                 ds.walk(self.curves_callback)
 
-                ANONYMOUS = "Anomymized"
+                ANONYMOUS = "anonymous"
                 today = time.strftime("%Y%m%d")
                 # requirement tag
+                #Accession Number
                 if (0x08, 0x50) not in ds:
                     ds.add_new((0x08, 0x50), 'SH', ANONYMOUS)
                 else:
                     ds[0x08, 0x50].value = ANONYMOUS
+                # Patient's ID     
                 if (0x10, 0x20) not in ds:
-                    ds.add_new((0x10, 0x20), 'LO', new_patient_id)
+                    ds.add_new((0x10, 0x20), 'LO', ANONYMOUS)
                 else:
-                    ds[0x10, 0x20].value = new_patient_id
+                    ds[0x10, 0x20].value = ANONYMOUS    
+                # Patient's Name           
+                if (0x10, 0x10) not in ds:
+                    ds.add_new((0x10, 0x10), 'PN', "Processed for anonymization")
+                else:
+                    ds[0x10, 0x10].value = "Processed for anonymization"
                 # requirement tag
-                requirement_tags = [(0x10, 0x10),  # Patient's Name
-                                 (0x10, 0x1000),  # Other Patient IDs
+                requirement_tags = [(0x10, 0x1000),  # Other Patient IDs
                                  (0x10, 0x1001),  # Other Patient Names
                                  (0x10, 0x1005),  # Patient's Birth Name
                                  (0x10, 0x1040),  # Patient's Address
@@ -503,7 +509,8 @@ class DicomProcessor:
                                  (0x3006, 0x00A6),  # ROI Interpreter
                                  (0x4008, 0x010A),  # Interpretation Transcriber
                                  (0x4008, 0x010C),  # Interpretation Author
-                                 (0x4008, 0x0114)  # Physician Approving
+                                 (0x4008, 0x0114),  # Physician Approving
+                                 (0x0032, 0x1033)   # RequestingService
                                 ]
                 for tag in requirement_tags:
                     if tag in ds:
@@ -519,8 +526,7 @@ class DicomProcessor:
                             
 
                 # requirement tag
-                uid_tags = [
-                                 (0x0008, 0x0014),  # Instance Creator UID
+                uid_tags = [(0x0008, 0x0014),  # Instance Creator UID
                                  #(0x0008, 0x0018),  # SOP Instance UID
                                  (0x0008, 0x010C),  # Coding Scheme UID
                                  (0x0008, 0x010D),  # Context Group Extension Creator UID
@@ -607,7 +613,7 @@ class DicomProcessor:
                 }
                 for tag in DICOM_TAGS.values():
                     if tag in ds:
-                        ds[tag].value = ""
+                        ds[tag].value = ANONYMOUS
                 # Ethnic Group
                 if (0x0010, 0x2160) in ds and ds[(0x0010, 0x2160)].value.lower() == "unknown":
                     ds[(0x0010, 0x2160)].value = ""
@@ -691,7 +697,7 @@ class DicomProcessor:
 
         return errors
 
-    def drown_volume(self, in_path, out_path, replacer='face', id='GWTG_ID', patient_id='0', name='Processed for GWTG',
+    def drown_volume(self, in_path, out_path, replacer='face', id='New_ID', patient_id='0', name='Processed for anonymization',
                      remove_text=False):
         try:
             error=""
@@ -701,7 +707,7 @@ class DicomProcessor:
                 dicom_files = [f for f in files if self.is_dicom(os.path.join(root, f))]
                 if dicom_files:
                     os.makedirs(out_dir, exist_ok=True)
-                    error = self.save_new_dicom_files(root, out_dir, replacer, id, patient_id, 'Processed for GWTG', remove_text)
+                    error = self.save_new_dicom_files(root, out_dir, replacer, id, patient_id, 'Processed for anonymization', remove_text)
         except Exception as e:
             with open(os.path.join(out_dir, 'log.txt'), 'a') as error_file:
                 error_file.write(f"Error: {e}\n")

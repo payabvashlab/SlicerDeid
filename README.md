@@ -36,7 +36,7 @@ This tools is work in progress being validated in AHA project. Contact at4049@cu
 - Step 3: Remove Identifiable Metadata Tags
 List of all tags we check and remove:
 <a href="https://github.com/payabvashlab/SlicerDeid/blob/main/documents/dicomTags.pdf"> DICOM header removal.pdf </a>
-Every DICOM tag listed in the Tables need to be replaced by "Anonymized" - except patient_id = 'Processed for GWTG'
+Every DICOM tag listed in the Tables need to be replaced by "anonymous" - except patient name use "Processed for anonymization"
 
 - Step 4: Blurring Facial Features with Morphology-Based Image Processing
 The kernel size of 20 pixels determines how much fat is removed
@@ -45,7 +45,7 @@ The kernel size of 20 pixels determines how much fat is removed
 1.	Select Dicom Folder
 The structure of a Dicom folder: The Dicom Folder must directly contain patient folders. Each patient folder may contain subdirectory. The application will process each patient file .dcm and the output has the same structure folder inside
 2.	Browse to Excel File
-The excel sheet input should be adjusted to have 2 columns with following column titles: <b> Accession_number, GWTG_ID </b>
+The excel sheet input should be adjusted to have 2 columns with following column titles: <b> Accession_number, New_ID </b>
 3.	Select Output Folder
 4.	Click Apply
 
