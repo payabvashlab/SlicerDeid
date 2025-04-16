@@ -131,7 +131,7 @@ class deidWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onApplyButton(self):
         try:
             slicer.util.infoDisplay(
-                "This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.",
+                "This tools is work in progress being validated in project. Contact sp4479@columbia.edu for more details. Use at your own risk.",
                 windowTitle="Warning")
             self.ui.progressBar.setValue(0)
             self.logic.process(
@@ -438,7 +438,7 @@ class DicomProcessor:
                 if (0x08, 0x50) not in ds:
                     ds.add_new((0x08, 0x50), 'SH', id)
                 else:
-                    ds[0x08, 0x50].value = ANONYMOUS
+                    ds[0x08, 0x50].value = id
                 # Patient's ID     
                 if (0x10, 0x20) not in ds:
                     ds.add_new((0x10, 0x20), 'LO', ANONYMOUS)
