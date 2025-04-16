@@ -43,7 +43,7 @@ The kernel size of 20 pixels determines how much fat is removed
 
 
 # Install Slicer module
-1.	Drag and drop a folder "codeXXX" to the Slicer application window.
+1.	Drag and drop a folder "deidXXX" to the Slicer application window.
 
 2.	Select "Add Python scripted modules to the application" in the popup window, and click OK. 
 
