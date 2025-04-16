@@ -28,7 +28,7 @@ This tools is work in progress being validated in AHA project. Contact at4049@cu
 
 6) Install as Slicer extension
 
-# Main Steps:
+# Main Algorithm:
 - Step 1: Reading the DICOM file
 
 - Step 2: Check DICOM file: modality("ct" or "computedtomography" or "ctprotocal") + ImageType ("original" and "primary" and "axial") + (StudyDescription or SeriesDescription or BodyPartEx-amined or FilterType ("head" or "brain" or "skull”))
@@ -40,6 +40,26 @@ Every DICOM tag listed in the Tables need to be replaced by "anonymous" - except
 
 - Step 4: Blurring Facial Features with Morphology-Based Image Processing
 The kernel size of 20 pixels determines how much fat is removed
+
+
+# Install Slicer module
+1.	Drag and drop a folder "codeXXX" to the Slicer application window.
+
+2.	Select "Add Python scripted modules to the application" in the popup window, and click OK. 
+
+3.	Select which modules to add to load immediately and click Yes. 
+
+4.	The selected modules will be immediately loaded, installed in all libraries, and made available. Run by in Modules/Utilities/Head CT Deidentification
+ 
+
+# Uninstall Slicer module
+1.	Select menu Edit/Application Setting
+
+2.	In Modules, Select Module Path and Arrow on the right to remove
+ 
+3.	Select Remove
+
+4.	Click Ok and Restart Slicer
 
 # Run:
 1.	Select Dicom Folder
@@ -56,8 +76,8 @@ All rights reserved.
 
 This software and its associated documentation are the intellectual property of Columbia University. Use, reproduction, or distribution of this software is prohibited without express written permission from Columbia University.
 
-Individuals or organizations wishing to use this software must contact Columbia University to obtain a license.
+Individuals or organizations wishing to use this software must contact Columbia University at techtransfer@adcu.columbia.edu to obtain a license.
 
-Permission to use the software may be granted free of charge on a case-by-case basis.
+Permission to use the software may be granted free of charge on a case-by-case basis. 
 
 Contact: sp4479@columbia.edu

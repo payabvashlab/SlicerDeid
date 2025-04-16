@@ -40,7 +40,7 @@ class deid(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "deid"  # Human-readable title
+        self.parent.title = "Head CT de-identification"  # Human-readable title
         self.parent.categories = ["Utilities"]
         self.parent.dependencies = []
         self.parent.contributors = ["Columbia University"]
@@ -436,7 +436,7 @@ class DicomProcessor:
                 # requirement tag
                 #Accession Number
                 if (0x08, 0x50) not in ds:
-                    ds.add_new((0x08, 0x50), 'SH', ANONYMOUS)
+                    ds.add_new((0x08, 0x50), 'SH', id)
                 else:
                     ds[0x08, 0x50].value = ANONYMOUS
                 # Patient's ID     
@@ -675,7 +675,7 @@ class DicomProcessor:
                     results = reader.readtext(image)
 
                     for (bbox, text, prob) in results:
-                        if prob > 0.5:  # Confidence threshold
+                        if prob > 0.8:  # Confidence threshold
                             (top_left, bottom_right) = (tuple(map(int, bbox[0])), tuple(map(int, bbox[2])))
                             cv2.rectangle(new_volume, top_left, bottom_right, (0, 0, 0), thickness=cv2.FILLED)  # Black out
                 new_slice = (new_volume - ds.RescaleIntercept) / ds.RescaleSlope
