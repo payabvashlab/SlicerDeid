@@ -20,21 +20,19 @@ References:
 
 
 
-# Main Algorithm:
-- Step 1: Reading the DICOM file
+# Axial head CT detection and de-identification algorithm:
 
-- Step 2: Check DICOM file: modality("ct" or "computedtomography" or "ctprotocal") + ImageType ("original" and "primary" and "axial") + (StudyDescription or SeriesDescription or BodyPartEx-amined or FilterType ("head" or "brain" or "skull”))
+In addition to removing PHI and PII, the head CT de-identification tool detects and excludes DICOM images from other imaging modalities or body regions based on the information in file meta-data, restricting the output to axial head CT series only. This reduces the risk of inadvertently transferring unrelated medical images and minimizes the computational resources required for data transfer and storage. 
 
-- Step 3: Remove Identifiable Metadata Tags
-List of all tags we check and remove:
-<a href="https://github.com/payabvashlab/SlicerDeid/blob/main/documents/dicomTags.pdf"> DICOM header removal.pdf </a>
-Every DICOM tag listed in the Tables need to be replaced by "anonymous" - except patient name use "Processed for anonymization"
+Using the following steps, the application ensures that only axial head CT DICOM images are processed and saved; and any DICOM files from other modalities (e.g., MRI, PET, X-ray) or body parts (e.g., neck, abdomen) are excluded.
 
-- Step 4: Blurring Facial Features with Morphology-Based Image Processing
-The kernel size of 20 pixels determines how much fat is removed
+- Step 1: Check the DICOM file header meta-data to ensure that (1) modality is "ct" or "computedtomography" or "ctprotocal" AND (2) the ImageType is "original" and "primary" and "axial"; AND (3) the StudyDescription or SeriesDescription or BodyPartExamined or FilterType is "head" or "brain" or "skull”.
 
+- Step 2: Remove PHI/PII from the DICOM file metadata by identifying the tags listed in the *DICOM header removal* PDF file (<a href="https://github.com/payabvashlab/SlicerDeid/blob/main/documents/dicomTags.pdf"> DICOM header removal.pdf </a>) and replacing them with the string “anonymous.” The patient name is replaced with “Processed for anonymization”.
 
-# Install Slicer module
+- Step 3: Blurring of facial features using morphology-based image processing. We will identify the skin–air interface based on air-level (-1000) Hounsfield Unit attenuation in CT scan. Superficial subcutaneous fat tissue is then removed using a kernel size of 20 voxels to prevent facial feature recognition in 3D reconstructions of the scan.
+
+# Installing the Slicer module
 1.	Drag and drop a folder "deidXXX" to the Slicer application window.
 
 2.	Select "Add Python scripted modules to the application" in the popup window, and click OK. 
@@ -44,14 +42,14 @@ The kernel size of 20 pixels determines how much fat is removed
 4.	The selected modules will be immediately loaded, installed in all libraries, and made available. Run by in Modules/Utilities/Head CT Deidentification
  
 
-# Uninstall Slicer module
+# Uninstalling the Slicer module
 1.	Select menu Edit/Application Setting
 
 2.	In Modules, Select Module Path and Arrow on the right to remove
  
 3.	Select Remove
 
-4.	Click Ok and Restart Slicer
+4.	Click Ok and Restart the Slicer
 
 # Run:
 1.	Select Dicom Folder
