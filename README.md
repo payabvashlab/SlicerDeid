@@ -70,7 +70,7 @@ The application requires three inputs: the address of folder that contains the D
 <h2>License</h2>
 Copyright (c) 2025 Columbia University
 
-All rights reserved.
+*All rights reserved.
 This software and its associated documentation are the intellectual property of Columbia University. Use, reproduction, or distribution of this software is prohibited without express written permission from Columbia University. 
-Individuals or organizations wishing to use this software must contact Columbia University at techtransfer@adcu.columbia.edu to obtain a license. Permission to use the software may be granted free of charge on a case-by-case basis. 
+Individuals or organizations wishing to use this software must contact Columbia University at techtransfer@adcu.columbia.edu to obtain a license. Permission to use the software may be granted free of charge on a case-by-case basis.*
 
