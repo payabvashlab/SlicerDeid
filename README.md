@@ -33,22 +33,19 @@ Using the following steps, the application ensures that only axial head CT DICOM
 - Step 3: Blurring of facial features using morphology-based image processing [4]. We will identify the skin–air interface based on air-level (-1000) Hounsfield Unit attenuation in CT scan. Superficial subcutaneous fat tissue is then removed using a kernel size of 20 voxels to prevent facial feature recognition in 3D reconstructions of the scan.
 
 <h2>Installing the Slicer module</h2>
+
 1.	Drag and drop a folder "deidXXX" to the Slicer application window.
+2.	Select "Add Python scripted modules to the application" in the popup window, and click OK.
+3.	Select which modules to add to load immediately and click Yes.
+4.	The selected modules will be immediately loaded, installed in all libraries, and made available under: Modules/Utilities/Head CT Deidentification.
+<img width="1163" alt="Screenshot 2025-04-17 at 4 03 01 PM" src="https://github.com/user-attachments/assets/bee37032-fbdb-4948-9cc3-7649f360a1b2" />
 
-2.	Select "Add Python scripted modules to the application" in the popup window, and click OK. 
-
-3.	Select which modules to add to load immediately and click Yes. 
-
-4.	The selected modules will be immediately loaded, installed in all libraries, and made available under: Modules/Utilities/Head CT Deidentification
- 
 
 <h2>Uninstalling the Slicer module</h2>
-1.	Select menu Edit/Application Setting
 
-2.	In Modules, Select Module Path and Arrow on the right to remove
- 
+1.	Under the Edit menu, select the Application Setting.
+2.	In Modules, Select Module Path and Arrow on the right to remove.
 3.	Select Remove
-
 4.	Click Ok and Restart the Slicer
 
 <h2>Running the application</h2>
