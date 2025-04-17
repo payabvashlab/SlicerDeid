@@ -1,32 +1,24 @@
-# De-identification non-contrast head CT
+# Head CT de-identification tool
 <h2>This project is under development</h2>
 
-Description:
+Approximately 15% to 30% of CT scans performed annually in the United States are head CTs [1, 2]. As a rapid and widely accessible modality, head CT is the first line of imaging to evaluate acute brain injury, cerebrovascular accidents, altered mental status, and post-procedural monitoring. Sharing head CT scans across institutions can facilitate the creation of large datasets for training deep learning models to guide treatment decisions in acute clinical settings. 
 
-1) Head Computed Tomography (CT) scans contain identifiable data in Digital Imaging and Com-munications in Medicine (DICOM) metadata as well as facial features, raising privacy concerns. This demonstrates the need for effective de-identification tools to protect patient privacy [1]. 
-=>This is a Slicer extension removing Personally Identifiable Information (PII) from head CT dicom
+A critical step for medical image sharing is removal of Protected Health Information (PHI) and Personally Identifiable Information (PII) to safeguard patient privacy and comply with HIPAA regulations. In head CT scans, personal and medical information are included in the DICOM file metadata [3]. Additionally, some scans may contain burned-in text displaying PHI/PII directly on the image. Three-dimensional reconstructions of volumetric brain CTs can also reveal facial features that may compromise patient privacy [4]. 
 
-2) Link to our project information:
-
-https://professional.heart.org/en/research-programs/aha-funding-opportunities/data-grant-stroke-images <br/>
+This 3D Slicer extension is designed to remove PHI from head CT DICOM metadata, detect and eliminate DICOM images with burned-in text, and strip superficial facial tissue at the air–skin interface to prevent facial feature recognition in 3D reconstructed head CTs. This project was in part supported by the American Heart Association (AHA) Stroke Image Sharing Consortium:
+https://professional.heart.org/en/research-programs/aha-funding-opportunities/data-grant-stroke-images
 https://newsroom.heart.org/news/sharing-brain-images-can-foster-new-neuroscience-discoveries
 
-3) One of the contributions of our module is to remove PII from metadata, face [2, 3], and text within images. <br/>
-The idea of de-face: eroding the skin and subcutaneous fat of the head and replacing the air around the head with a customizable pixel value. <br/>
-The idea of removing text within images: Using morphology and Keeping the largest object, remove small objects < threshold
+*Warning: This tool is a work in progress and is currently being validated as part of an AHA-funded research project. For more information, contact at4049@cumc.columbia.edu. Use at your own risk.*
 
-4) Warning: 
-This tools is work in progress being validated in AHA project. Contact at4049@cumc.columbia.edu for more details. Use at your own risk.
+References: 
 
-5) References:
+1.	Cauley, K.A., Y. Hu, and S.W. Fielden, Head CT: Toward Making Full Use of the Information the X-Rays Give. AJNR Am J Neuroradiol, 2021. 42(8): p. 1362-1369.
+2.	Sheppard, J.P., et al., Risk of Brain Tumor Induction from Pediatric Head CT Procedures: A Systematic Literature Review. Brain Tumor Res Treat, 2018. 6(1): p. 1-7.
+3.	Clunie, D.A., et al., Report of the Medical Image De-Identification (MIDI) Task Group -- Best Practices and Recommendations. ArXiv, 2025.
+4.	Collins, S.A., J. Wu, and H.X. Bai, Facial De-identification of Head CT Scans. Radiology, 2020. 296(1): p. 22.
 
-[1] David A Clunie, Adam Flanders, Adam Taylor, Brad Erickson, Brian Bialecki, David Brundage, et. al., (2023). Report of the Medical Image De-Identification (MIDI) Task Group - Best Practices and Recommendations, arXiv:2303.10473v2 
 
-[2] Scott A. Collins, Jing Wu, Harrison X. Bai. (2020). Facial De-identification of Head CT Scans. Radiology, 296(1), doi:10.1148/radiol.2020192617
-
-[3] https://github.com/kitamura-felipe/face_deid_ct
-
-6) Install as Slicer extension
 
 # Main Algorithm:
 - Step 1: Reading the DICOM file
@@ -73,11 +65,6 @@ The excel sheet input should be adjusted to have 2 columns with following column
 Copyright (c) 2025 Columbia University
 
 All rights reserved.
+This software and its associated documentation are the intellectual property of Columbia University. Use, reproduction, or distribution of this software is prohibited without express written permission from Columbia University. 
+Individuals or organizations wishing to use this software must contact Columbia University at techtransfer@adcu.columbia.edu to obtain a license. Permission to use the software may be granted free of charge on a case-by-case basis. 
 
-This software and its associated documentation are the intellectual property of Columbia University. Use, reproduction, or distribution of this software is prohibited without express written permission from Columbia University.
-
-Individuals or organizations wishing to use this software must contact Columbia University at techtransfer@adcu.columbia.edu to obtain a license.
-
-Permission to use the software may be granted free of charge on a case-by-case basis. 
-
-Contact: sp4479@columbia.edu
