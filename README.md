@@ -20,7 +20,7 @@ References:
 
 
 
-# Axial head CT detection and de-identification algorithm:
+<h2>Axial head CT detection and de-identification algorithm:</h2>
 
 In addition to removing PHI and PII, the head CT de-identification tool detects and excludes DICOM images from other imaging modalities or body regions based on the information in file meta-data, restricting the output to axial head CT series only. This reduces the risk of inadvertently transferring unrelated medical images and minimizes the computational resources required for data transfer and storage. 
 
@@ -30,19 +30,19 @@ Using the following steps, the application ensures that only axial head CT DICOM
 
 - Step 2: Remove PHI/PII from the DICOM file metadata by identifying the tags listed in the *DICOM header removal* PDF file (<a href="https://github.com/payabvashlab/SlicerDeid/blob/main/documents/dicomTags.pdf"> DICOM header removal.pdf </a>) and replacing them with the string “anonymous.” The patient name is replaced with “Processed for anonymization”.
 
-- Step 3: Blurring of facial features using morphology-based image processing. We will identify the skin–air interface based on air-level (-1000) Hounsfield Unit attenuation in CT scan. Superficial subcutaneous fat tissue is then removed using a kernel size of 20 voxels to prevent facial feature recognition in 3D reconstructions of the scan.
+- Step 3: Blurring of facial features using morphology-based image processing [4]. We will identify the skin–air interface based on air-level (-1000) Hounsfield Unit attenuation in CT scan. Superficial subcutaneous fat tissue is then removed using a kernel size of 20 voxels to prevent facial feature recognition in 3D reconstructions of the scan.
 
-# Installing the Slicer module
+<h2>Installing the Slicer module</h2>
 1.	Drag and drop a folder "deidXXX" to the Slicer application window.
 
 2.	Select "Add Python scripted modules to the application" in the popup window, and click OK. 
 
 3.	Select which modules to add to load immediately and click Yes. 
 
-4.	The selected modules will be immediately loaded, installed in all libraries, and made available. Run by in Modules/Utilities/Head CT Deidentification
+4.	The selected modules will be immediately loaded, installed in all libraries, and made available under: Modules/Utilities/Head CT Deidentification
  
 
-# Uninstalling the Slicer module
+<h2>Uninstalling the Slicer module</h2>
 1.	Select menu Edit/Application Setting
 
 2.	In Modules, Select Module Path and Arrow on the right to remove
@@ -51,15 +51,23 @@ Using the following steps, the application ensures that only axial head CT DICOM
 
 4.	Click Ok and Restart the Slicer
 
-# Run:
-1.	Select Dicom Folder
-The structure of a Dicom folder: The Dicom Folder must directly contain patient folders. Each patient folder may contain subdirectory. The application will process each patient file .dcm and the output has the same structure folder inside
-2.	Browse to Excel File
-The excel sheet input should be adjusted to have 2 columns with following column titles: <b> Accession_number, New_ID </b>
-3.	Select Output Folder
-4.	Click Apply
+<h2>Running the application</h2>
 
-## License
+The application requires three inputs: the address of folder that contains the DICOM files; the list folder names containing the head CT of each patient; direction of folder to save the de-identified files.
+
+<img width="403" alt="Screenshot 2025-04-17 at 3 15 01 PM" src="https://github.com/user-attachments/assets/f00bb003-e903-4a01-89b4-f33ee18385d0" />
+
+1.	<b>Input folder</b>: The input folder should directly contain individual patient folders that include corresponding DICOM files. The application treats each folder within the input folder address as one patient, using the folder name as the patient identifier, and processes and saves the corresponding DICOM files accordingly. Therefore, DICOM files from different patients must not be stored in the same folder. Each patient folder may contain subfolders or non-DICOM files; the application will preserve the subfolder structure and save the de-identified DICOM files using the same organizational hierarchy as the input.
+<img width="994" alt="Screenshot 2025-04-17 at 3 25 23 PM" src="https://github.com/user-attachments/assets/43e0a714-f95a-4694-964c-912e3a8cd503" />
+
+2.	<b>Excel File</b>: The Excel file should contain two columns with the following headers in the first row: <b>Accession_number</b> and <b>New_ID</b>. Each "accession number" must match a patient folder name in the input directory. The application will treat each "accession number" as a unique patient identifier, use it to locate and process the corresponding folder, and then rename the folder using the associated "New_ID" from the same row. Both "accession numbers" and "New_IDs" can be any combination of alphanumeric characters.
+<img width="196" alt="Screenshot 2025-04-17 at 3 43 10 PM" src="https://github.com/user-attachments/assets/d250e758-9a02-4c5f-80f1-5f52f4f4bb97" />
+
+3.	<b>Output folde</b>r: The output folder specifies the directory where de-identified DICOM files will be saved. After de-identification, axial head CT DICOM files will be stored in a new set of folders, each renamed using the corresponding "New_ID" from the Excel file, replacing the original patient folder names. Additionally, the DICOM tag *Accession Number (0008,0050)* will be replaced by the "New_ID".
+
+<b>Remove text inside dicom</b>: This feature examines for any burned-in text within the images and removes the corresponding DICOM files. While enabling this option will increase processing time, it is recommended for thorough de-identification of scans. 
+
+<h2>License</h2>
 Copyright (c) 2025 Columbia University
 
 All rights reserved.
